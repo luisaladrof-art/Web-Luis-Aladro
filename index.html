@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Luis Aladro de Frutos | Ejecutivo Comercial y Desarrollo de Negocio</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#162839",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2c3e50",
+                        "secondary": "#5d5e63",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#342400",
+                        "tertiary-fixed-dim": "#e9c176",
+                        "background": "#f9f9fb",
+                        "surface": "#f9f9fb",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-low": "#f3f3f5",
+                        "surface-container-high": "#e8e8ea",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Newsreader", "serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .perspective-box-img {
+            clip-path: polygon(0 0, 100% 0, 100% 95%, 0 100%);
+            transition: transform 0.5s ease;
+        }
+        .perspective-box-img:hover {
+            transform: scale(1.02);
+        }
+        /* Clase para el efecto Parallax */
+        .parallax-bg {
+            background-attachment: fixed;
+            background-position: center top;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        /* Estilos para el scroll del chatbot */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-tertiary-fixed-dim selection:text-primary antialiased">
+
+    <!-- Top Navigation Bar -->
+    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300">
+        <div class="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
+            <span class="font-headline font-bold text-xl tracking-tight text-primary">Luis Aladro de Frutos</span>
+            <div class="hidden md:flex items-center space-x-8 font-headline text-sm font-semibold tracking-tight">
+                <a class="text-primary border-b-2 border-tertiary-fixed-dim pb-1" href="#home">Inicio</a>
+                <a class="text-secondary hover:text-primary transition-colors" href="#perfil">Perfil</a>
+                <a class="text-secondary hover:text-primary transition-colors" href="#experiencia">Experiencia</a>
+                <a class="text-secondary hover:text-primary transition-colors" href="#habilidades">Habilidades</a>
+                <a class="bg-primary text-white px-6 py-2.5 rounded-full hover:bg-primary-container transition-all shadow-md" href="CV_Luis_Aladro_Comercial.pdf" target="_blank">Descargar CV</a>
+            </div>
+            <button class="md:hidden text-primary">
+                <span class="material-symbols-outlined text-3xl" data-icon="menu">menu</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section con Parallax -->
+    <header class="relative min-h-screen flex items-center pt-20 overflow-hidden parallax-bg" id="home" style="background-image: url('Gemini_Generated_Image_n5a1ohn5a1ohn5a1.jpg');">
+        <div class="absolute inset-0 z-0 bg-gradient-to-r from-background via-background/95 to-background/40"></div>
+        
+        <div class="container mx-auto px-6 relative z-10 grid md:grid-cols-2 gap-12 items-center">
+            <div class="max-w-2xl py-20">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="h-px w-8 bg-tertiary-fixed-dim block"></span>
+                    <span class="font-headline text-sm font-bold tracking-widest text-secondary uppercase">Madrid, Las Tablas</span>
+                </div>
+                <h1 class="font-headline text-5xl md:text-7xl font-extrabold text-primary leading-[1.05] mb-6 tracking-tight">
+                    Luis Aladro <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">de Frutos</span>
+                </h1>
+                <p class="font-body text-xl md:text-2xl text-secondary mb-10 leading-relaxed italic border-l-4 border-tertiary-fixed-dim pl-4">
+                    Ejecutivo senior con más de 20 años de experiencia comercial B2B y B2C. Especialista en ventas, marketing y transformación digital.
+                </p>
+                <div class="flex flex-wrap gap-4 font-headline">
+                    <a class="px-8 py-4 bg-primary text-white font-semibold rounded-full flex items-center gap-2 hover:bg-primary-container transition-all shadow-lg hover:shadow-xl" href="#experiencia">
+                        Ver Trayectoria
+                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+                    </a>
+                    <a class="px-8 py-4 bg-white text-primary font-semibold rounded-full border border-gray-200 hover:bg-gray-50 transition-all shadow-sm" href="mailto:luis.aladro.f@gmail.com">
+                        Contactar
+                    </a>
+                </div>
+            </div>
+            <div class="hidden md:block relative">
+                <div class="relative z-10 perspective-box-img overflow-hidden rounded-2xl shadow-2xl border-4 border-white">
+                    <img alt="Luis Aladro - Foto de perfil" class="w-full h-auto object-cover grayscale-[20%] contrast-125" src="Foto.jpg" onerror="this.src='https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=800'"/>
+                </div>
+                <div class="absolute -bottom-8 -left-8 w-64 h-64 bg-tertiary-fixed-dim/30 rounded-full blur-3xl -z-10"></div>
+                <div class="absolute -top-8 -right-8 w-64 h-64 bg-primary/20 rounded-full blur-3xl -z-10"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section class="py-24 bg-surface" id="perfil">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <div class="grid md:grid-cols-12 gap-16 items-start">
+                <div class="md:col-span-5 sticky top-32">
+                    <h2 class="font-headline text-3xl md:text-4xl font-extrabold text-primary mb-6">Perfil <br/>Profesional</h2>
+                    <p class="font-body text-lg leading-relaxed text-secondary mb-8">
+                        Combino una sólida estrategia comercial con un profundo conocimiento en Marketing y Transformación Digital para maximizar la captación y conversión de clientes.
+                    </p>
+                    <div class="flex flex-col gap-5">
+                        <div class="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="workspace_premium">workspace_premium</span>
+                            <div>
+                                <span class="font-headline text-sm font-bold block text-primary">CUPRA Master & Asesor SEAT</span>
+                                <span class="font-label text-xs text-secondary">Certificación Oficial</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim text-3xl" data-icon="memory">memory</span>
+                            <div>
+                                <span class="font-headline text-sm font-bold block text-primary">Experto en IA Aplicada</span>
+                                <span class="font-label text-xs text-secondary">Automatización y Negocio</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="md:col-span-7">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <span class="material-symbols-outlined text-4xl text-primary mb-4 block" data-icon="handshake">handshake</span>
+                            <h3 class="font-headline text-xl font-bold mb-3 text-primary">Negociación B2B y KAM</h3>
+                            <p class="font-body text-secondary leading-relaxed">
+                                Experiencia en negociación con grandes cuentas (Endesa, Iberdrola, Repsol, Bankia, BBVA, Mapfre, Multiópticas, Heineken, etc.).
+                            </p>
+                        </div>
+                        <div class="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <span class="material-symbols-outlined text-4xl text-primary mb-4 block" data-icon="leaderboard">leaderboard</span>
+                            <h3 class="font-headline text-xl font-bold mb-3 text-primary">Estrategia y Rentabilidad</h3>
+                            <p class="font-body text-secondary leading-relaxed">
+                                Planificación estratégica, gestión de P&L, forecasting, reporting y optimización del ciclo de vida completo de la venta.
+                            </p>
+                        </div>
+                        <div class="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <span class="material-symbols-outlined text-4xl text-primary mb-4 block" data-icon="group">group</span>
+                            <h3 class="font-headline text-xl font-bold mb-3 text-primary">Liderazgo de Equipos</h3>
+                            <p class="font-body text-secondary leading-relaxed">
+                                Líder facilitador, capaz de dirigir, formar y motivar equipos de alto rendimiento (hasta 15 personas).
+                            </p>
+                        </div>
+                        <div class="bg-surface-container-lowest p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                            <span class="material-symbols-outlined text-4xl text-primary mb-4 block" data-icon="digital_wellbeing">digital_wellbeing</span>
+                            <h3 class="font-headline text-xl font-bold mb-3 text-primary">Marketing Digital</h3>
+                            <p class="font-body text-secondary leading-relaxed">
+                                Generación de leads, estrategia omnicanal, gestión de CRM, Google Ads, Analytics y automatización.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section class="py-24 bg-surface-container-low" id="experiencia">
+        <div class="container mx-auto px-6 max-w-5xl">
+            <div class="text-center mb-16">
+                <h2 class="font-headline text-4xl font-extrabold text-primary mb-4 tracking-tight">Trayectoria Comercial</h2>
+                <div class="w-24 h-1 bg-tertiary-fixed-dim mx-auto"></div>
+                <p class="mt-6 text-lg text-secondary font-body max-w-2xl mx-auto">
+                    40 años de experiencia laboral en sectores altamente competitivos: Automoción, Energía, Eventos, Óptica, Publicidad, Formación y Retail.
+                </p>
+            </div>
+
+            <div class="space-y-8">
+                <!-- Job 1 -->
+                <div class="bg-surface-container-lowest p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                        <div>
+                            <h3 class="font-headline text-2xl font-bold text-primary">Comercial de Ventas & Marketing</h3>
+                            <p class="text-primary-container font-headline font-semibold mt-1">Grupo Gil (SEAT y CUPRA) <span class="text-secondary font-normal font-body">| Torrejón de Ardoz, Madrid</span></p>
+                        </div>
+                        <span class="bg-surface-container-high text-primary px-4 py-1.5 rounded-full text-sm font-bold font-headline self-start md:self-auto">Actualidad</span>
+                    </div>
+                    <p class="font-body text-lg text-secondary mb-4 italic">
+                        Gestión comercial directa y coordinación de estrategias de marketing multimarca.
+                    </p>
+                    <ul class="space-y-3 font-body text-on-surface">
+                        <li class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="check_circle">check_circle</span>
+                            Asesoramiento certificado y venta especializada en vehículos de las marcas SEAT y CUPRA.
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="check_circle">check_circle</span>
+                            Gestión y ejecución de planes de marketing para diversas marcas del grupo de automoción.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Job 2 -->
+                <div class="bg-surface-container-lowest p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-5 pointer-events-none">
+                        <span class="material-symbols-outlined text-[150px]" data-icon="directions_car">directions_car</span>
+                    </div>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 relative z-10">
+                        <div>
+                            <h3 class="font-headline text-2xl font-bold text-primary">Desarrollo de Negocio y Ventas</h3>
+                            <p class="text-primary-container font-headline font-semibold mt-1">Sector Automoción (Varias Marcas)</p>
+                        </div>
+                        <span class="bg-surface-container-high text-primary px-4 py-1.5 rounded-full text-sm font-bold font-headline self-start md:self-auto">Trayectoria</span>
+                    </div>
+                    <ul class="space-y-3 font-body text-on-surface relative z-10">
+                        <li class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="check_circle">check_circle</span>
+                            Experiencia consolidada en ventas y marketing para marcas líderes: Renault, SEAT, CUPRA, Opel, Mazda, MG, Mitsubishi y vehículos de ocasión.
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="check_circle">check_circle</span>
+                            Experiencia previa documentada en Tuvisa Opel como Director Comercial & Marketing.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Job 3 -->
+                <div class="bg-surface-container-lowest p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                        <div>
+                            <h3 class="font-headline text-2xl font-bold text-primary">Gestión Comercial y Dirección</h3>
+                            <p class="text-primary-container font-headline font-semibold mt-1">Sectores: Formación, Óptica, Publicidad y Energía</p>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <ul class="space-y-3 font-body text-on-surface">
+                            <li class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="school">school</span>
+                                <div><strong>Formación:</strong> Informática, karate, conducción eficiente, económica y 4x4.</div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="visibility">visibility</span>
+                                <div><strong>Óptica:</strong> Mayorista distribuidor exclusivo de Polaroid y Rudy Proyect.</div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="sports_golf">sports_golf</span>
+                                <div><strong>Eventos:</strong> Organización comercial de eventos de golf y motor.</div>
+                            </li>
+                        </ul>
+                        <ul class="space-y-3 font-body text-on-surface">
+                            <li class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="campaign">campaign</span>
+                                <div><strong>Publicidad:</strong> Revistas MMI, revista Aluminio, Periódico El Distrito.</div>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="material-symbols-outlined text-tertiary-fixed-dim mt-0.5 text-xl" data-icon="bolt">bolt</span>
+                                <div><strong>Energía:</strong> Jefe de equipo en contratos de luz y gas.</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="py-24 bg-primary text-white" id="habilidades">
+        <div class="container mx-auto px-6 max-w-7xl">
+            <h2 class="font-headline text-4xl font-extrabold mb-16 text-center">Herramientas & <span class="text-tertiary-fixed-dim">Conocimientos Técnicos</span></h2>
+            
+            <div class="grid lg:grid-cols-3 gap-12">
+                <div class="space-y-8">
+                    <div class="bg-primary-container/50 p-6 rounded-2xl border border-white/10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="material-symbols-outlined text-3xl text-tertiary-fixed-dim" data-icon="robot_2">robot_2</span>
+                            <h3 class="font-headline text-xl font-bold">Inteligencia Artificial</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 font-label text-sm">
+                            <span class="bg-white/10 px-3 py-1 rounded-full">ChatGPT</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Gemini</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Claude</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Perplexity</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Grok</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">NotebookLM</span>
+                        </div>
+                    </div>
+                    <div class="bg-primary-container/50 p-6 rounded-2xl border border-white/10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="material-symbols-outlined text-3xl text-tertiary-fixed-dim" data-icon="computer">computer</span>
+                            <h3 class="font-headline text-xl font-bold">Software Básico</h3>
+                        </div>
+                        <p class="font-body text-white/80">Nivel avanzado en paquete Office (Word, Excel, PowerPoint), Photoshop y Premiere Pro.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-8">
+                    <div class="bg-primary-container/50 p-6 rounded-2xl border border-white/10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="material-symbols-outlined text-3xl text-tertiary-fixed-dim" data-icon="database">database</span>
+                            <h3 class="font-headline text-xl font-bold">CRM & Sistemas</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 font-label text-sm">
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Salesforce</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Hubspot</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Imaweb</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Sistemas DMS</span>
+                        </div>
+                    </div>
+                    <div class="bg-primary-container/50 p-6 rounded-2xl border border-white/10">
+                        <div class="flex items-center gap-4 mb-4">
+                            <span class="material-symbols-outlined text-3xl text-tertiary-fixed-dim" data-icon="query_stats">query_stats</span>
+                            <h3 class="font-headline text-xl font-bold">Marketing Digital</h3>
+                        </div>
+                        <div class="flex flex-wrap gap-2 font-label text-sm">
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Google Analytics</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Google Ads</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">Meta Business</span>
+                            <span class="bg-white/10 px-3 py-1 rounded-full">SEMrush</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hidden lg:block relative rounded-2xl overflow-hidden border border-white/10 h-full min-h-[300px]">
+                    <img alt="Luis Aladro" class="w-full h-full object-cover opacity-80 mix-blend-luminosity hover:mix-blend-normal transition-all duration-500" src="20210524_155753.jpg" onerror="this.src='https://images.unsplash.com/photo-1552581234-26160f608093?auto=format&fit=crop&q=80&w=800'"/>
+                    <div class="absolute inset-0 bg-gradient-to-t from-primary via-transparent to-transparent"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Education Section -->
+    <section class="py-24 bg-surface" id="formacion">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <h2 class="font-headline text-4xl font-extrabold text-primary mb-12 text-center tracking-tight">Formación & Certificaciones</h2>
+            
+            <div class="relative border-l-2 border-surface-container-high ml-4 md:ml-0 space-y-10">
+                <div class="relative pl-8 md:pl-10">
+                    <span class="absolute -left-[9px] top-2 w-4 h-4 rounded-full bg-tertiary-fixed-dim border-4 border-surface"></span>
+                    <h3 class="font-headline text-xl font-bold text-primary">IA Aplicada a Negocio</h3>
+                    <p class="font-body text-secondary mt-1">Varias formaciones (2024-2026)</p>
+                </div>
+                
+                <div class="relative pl-8 md:pl-10">
+                    <span class="absolute -left-[9px] top-2 w-4 h-4 rounded-full bg-primary border-4 border-surface"></span>
+                    <h3 class="font-headline text-xl font-bold text-primary">The PowerMBA</h3>
+                    <p class="font-body text-secondary mt-1">Business & Strategy Program (2020-2021) <br/><span class="text-sm italic">Programa de negocio enfocado en estrategia y gestión empresarial.</span></p>
+                </div>
+
+                <div class="relative pl-8 md:pl-10">
+                    <span class="absolute -left-[9px] top-2 w-4 h-4 rounded-full bg-primary border-4 border-surface"></span>
+                    <h3 class="font-headline text-xl font-bold text-primary">Programas Directivos (2020)</h3>
+                    <ul class="font-body text-secondary mt-2 list-disc list-inside space-y-1">
+                        <li>Programa Avanzado de Transformación Digital (90h)</li>
+                        <li>Dirección de Marketing y Ventas (Instituto Europeo)</li>
+                    </ul>
+                </div>
+
+                <div class="relative pl-8 md:pl-10">
+                    <span class="absolute -left-[9px] top-2 w-4 h-4 rounded-full bg-primary-container border-4 border-surface"></span>
+                    <h3 class="font-headline text-xl font-bold text-primary">Formación Técnica de Base</h3>
+                    <ul class="font-body text-secondary mt-2 list-disc list-inside space-y-1">
+                        <li>Estudios Universitarios en Ingeniería Técnica Industrial.</li>
+                        <li>Técnico Especialista en Electrónica Industrial (FP II).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-primary text-white w-full py-16 px-6 border-t-8 border-tertiary-fixed-dim mt-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-7xl mx-auto text-center md:text-left">
+            <div>
+                <span class="font-headline text-2xl font-bold block mb-4">Luis Aladro de Frutos</span>
+                <p class="font-body italic text-lg leading-relaxed text-white/80">
+                    "Maximizando la captación y conversión a través de liderazgo estratégico e integración tecnológica."
+                </p>
+            </div>
+            <div class="md:pl-12">
+                <span class="font-headline font-extrabold uppercase tracking-widest text-xs text-white/50 block mb-6">Contacto</span>
+                <div class="flex flex-col gap-4 font-headline text-lg">
+                    <a class="flex items-center gap-2 hover:text-tertiary-fixed-dim transition-colors justify-center md:justify-start" href="mailto:luis.aladro.f@gmail.com">
+                        <span class="material-symbols-outlined text-xl" data-icon="mail">mail</span> luis.aladro.f@gmail.com
+                    </a>
+                    <a class="flex items-center gap-2 hover:text-tertiary-fixed-dim transition-colors justify-center md:justify-start" href="tel:+34625631432">
+                        <span class="material-symbols-outlined text-xl" data-icon="phone_iphone">phone_iphone</span> 625 631 432
+                    </a>
+                    <span class="flex items-center gap-2 text-white/80 justify-center md:justify-start">
+                        <span class="material-symbols-outlined text-xl" data-icon="location_on">location_on</span> Madrid (Las Tablas)
+                    </span>
+                </div>
+            </div>
+            <div class="md:text-right">
+                <span class="font-headline font-extrabold uppercase tracking-widest text-xs text-white/50 block mb-6">Navegación</span>
+                <div class="flex flex-col gap-4 font-headline">
+                    <a class="hover:text-tertiary-fixed-dim transition-colors" href="#home">Volver arriba</a>
+                    <a class="hover:text-tertiary-fixed-dim transition-colors" href="CV_Luis_Aladro_Comercial.pdf" target="_blank">Ver Currículum en PDF</a>
+                </div>
+                <p class="text-xs font-headline mt-8 text-white/30">© 2026 Luis Aladro de Frutos. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Chatbot Widget -->
+    <div id="chat-widget" class="fixed bottom-6 right-6 z-[100] flex flex-col items-end font-headline">
+        <div id="chat-window" class="hidden w-[90vw] sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 mb-4 overflow-hidden flex-col transition-all duration-300 origin-bottom-right transform scale-0 opacity-0 h-[500px] max-h-[80vh]">
+            <div class="bg-primary text-white p-4 flex justify-between items-center shadow-md z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-tertiary-fixed-dim">
+                        <img src="Foto.jpg" alt="Luis" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100'">
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">Asistente de Luis</h3>
+                        <span class="text-xs text-tertiary-fixed-dim flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-green-400"></span> En línea
+                        </span>
+                    </div>
+                </div>
+                <button id="close-chat" class="text-white/80 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto chat-scroll bg-surface-container-low flex flex-col gap-4">
+                <!-- El mensaje de bienvenida se genera automáticamente en Javascript para saber si cargó el txt -->
+            </div>
+
+            <div class="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
+                <input type="text" id="chat-input" placeholder="Escribe tu pregunta..." class="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-body">
+                <button id="send-btn" class="bg-primary text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-primary-container transition-colors shrink-0">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                </button>
+            </div>
+        </div>
+
+        <button id="chat-toggle" class="bg-primary text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform border-2 border-tertiary-fixed-dim group">
+            <span class="material-symbols-outlined text-3xl group-hover:hidden">chat</span>
+            <span class="material-symbols-outlined text-3xl hidden group-hover:block">smart_toy</span>
+        </button>
+    </div>
+
+    <!-- Script del Chatbot Avanzado -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            VanillaTilt.init(document.querySelectorAll("#perfil .rounded-2xl, #experiencia .rounded-2xl, #habilidades .rounded-2xl"), {
+                max: 3,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.05
+            });
+
+            const chatToggle = document.getElementById('chat-toggle');
+            const chatWindow = document.getElementById('chat-window');
+            const closeChat = document.getElementById('close-chat');
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const chatMessages = document.getElementById('chat-messages');
+            
+            let knowledgeParagraphs = [];
+            const fallbackResponseExacto = "Lo siento, no dispongo de esa información, es mejor que contactes con Luis directamente y te responderá a todo lo que necesites. Muchas gracias.";
+            
+            // Filtro de Stop Words para no buscar palabras comunes en el TXT y mejorar la puntería
+            const stopWords = ['que','de','la','el','en','y','a','los','se','del','las','un','por','con','no','una','su','al','es','lo','como','mas','pero','sus','le','ya','o','porque','cuando','muy','sin','sobre','tambien','me','hasta','hay','donde','quien','desde','todo','nos','durante','todos','uno','les','ni','contra','otros','ese','eso','ante','ellos','e','esto','mi','antes','algunos','que','unos','yo','otro','otras','otra','el','tanto','esa','estos','mucho','quienes','nada','muchos','cual','poco','ella','estar','estas','algunas','algo','nosotros','mi','mis','tengo','tiene','hacer','dime','cuentame','hablame','quiero','saber', 'hola', 'luis'];
+
+            // Función para iniciar el bot y cargar el TXT
+            async function initBot() {
+                let fileLoaded = false;
+                try {
+                    const response = await fetch('experiencia.txt');
+                    if (!response.ok) throw new Error("No se encuentra el archivo");
+                    const text = await response.text();
+                    // Extrae las frases separándolas por cualquier salto de línea y quita las vacías
+                    knowledgeParagraphs = text.split(/\n+/).map(p => p.trim()).filter(p => p.length > 5);
+                    if (knowledgeParagraphs.length > 0) {
+                        fileLoaded = true;
+                    }
+                } catch (error) {
+                    console.warn("Restricción del navegador: No se puede leer experiencia.txt directamente. Abre con servidor local (ej. Live Server).");
+                }
+
+                // Generar mensaje de bienvenida con indicador de estado
+                const statusHtml = fileLoaded 
+                    ? `<span class='text-green-600 text-[10px] font-bold block mb-1 uppercase tracking-widest'>🟢 experiencia.txt conectado</span>` 
+                    : `<span class='text-red-500 text-[10px] font-bold block mb-1 uppercase tracking-widest'>⚠️ No se pudo leer experiencia.txt (Usa Live Server)</span>`;
+                
+                chatMessages.innerHTML = `
+                    <div class="flex gap-2 w-full">
+                        <div class="bg-white border border-gray-100 p-3 rounded-2xl rounded-tl-sm shadow-sm text-sm text-on-surface max-w-[85%] font-body">
+                            ${statusHtml}
+                            Soy la Inteligencia Artificial que trabaja para Luis. Mis respuestas son limitadas, pero dime en qué te puedo ayudar.
+                        </div>
+                    </div>
+                `;
+            }
+
+            const toggleChat = () => {
+                if (chatWindow.classList.contains('hidden')) {
+                    chatWindow.classList.remove('hidden');
+                    setTimeout(() => {
+                        chatWindow.classList.remove('scale-0', 'opacity-0');
+                        chatWindow.classList.add('scale-100', 'opacity-100');
+                        chatWindow.style.display = 'flex';
+                    }, 10);
+                } else {
+                    chatWindow.classList.remove('scale-100', 'opacity-100');
+                    chatWindow.classList.add('scale-0', 'opacity-0');
+                    setTimeout(() => {
+                        chatWindow.classList.add('hidden');
+                        chatWindow.style.display = 'none';
+                    }, 300);
+                }
+            };
+
+            const addMessage = (text, isUser = false) => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `flex gap-2 w-full ${isUser ? 'justify-end' : ''} mb-4`;
+                
+                const innerClass = isUser 
+                    ? 'bg-primary text-white p-3 rounded-2xl rounded-tr-sm shadow-sm text-sm max-w-[85%] font-body'
+                    : 'bg-white border border-gray-100 p-3 rounded-2xl rounded-tl-sm shadow-sm text-sm text-on-surface max-w-[85%] font-body';
+                
+                msgDiv.innerHTML = `<div class="${innerClass}">${text}</div>`;
+                chatMessages.appendChild(msgDiv);
+                
+                setTimeout(() => {
+                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+                }, 50);
+            };
+
+            const getBotResponse = (input) => {
+                // Normaliza la entrada: minúsculas, sin tildes y solo palabras y espacios
+                const normalizedInput = input.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, "");
+                // Filtra palabras cortas y palabras comunes (stopwords)
+                const inputWords = normalizedInput.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+                
+                // Si el archivo TXT cargó bien
+                if (knowledgeParagraphs.length > 0) {
+                    if (inputWords.length > 0) {
+                        let bestScore = 0;
+                        let bestMatch = fallbackResponseExacto;
+
+                        for (const para of knowledgeParagraphs) {
+                            const normalizedPara = para.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            let score = 0;
+                            // Revisa cuántas de las palabras clave introducidas existen en ese párrafo
+                            for (const word of inputWords) {
+                                if (normalizedPara.includes(word)) score++;
+                            }
+                            
+                            // Si encuentra coincidencias, se guarda el párrafo
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestMatch = para;
+                            }
+                        }
+                        return bestScore > 0 ? bestMatch : fallbackResponseExacto;
+                    }
+                    return fallbackResponseExacto;
+                }
+
+                // Si el archivo TXT NO se pudo cargar (por abrir el HTML local sin servidor), 
+                // para que no quede inútil y devuelva un error, mantengo su respuesta estricta como manda la instrucción:
+                return fallbackResponseExacto;
+            };
+
+            const handleSend = () => {
+                const text = chatInput.value.trim();
+                if (!text) return;
+                
+                addMessage(text, true);
+                chatInput.value = '';
+                
+                setTimeout(() => {
+                    const response = getBotResponse(text);
+                    addMessage(response, false);
+                }, 700);
+            };
+
+            chatToggle.addEventListener('click', toggleChat);
+            closeChat.addEventListener('click', toggleChat);
+            sendBtn.addEventListener('click', handleSend);
+            
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault(); 
+                    handleSend();
+                }
+            });
+
+            // Arrancar el proceso
+            initBot();
+            setTimeout(toggleChat, 1500);
+        });
+    </script>
+</body>
+</html>
