@@ -262,19 +262,131 @@
   </aside>
 
   <button class="chat-toggle" id="chatToggle" aria-label="Abrir chatbot">AI</button>
-  <section class="chatbot" id="chatbot" aria-hidden="true">
-    <header>
-      <strong>Asistente IA</strong>
-      <button id="closeChat" aria-label="Cerrar chatbot">×</button>
-    </header>
-    <div class="chat-log" id="chatLog">
-      <div class="bot-message">Hola. Soy el asistente virtual de Luis. ¿En qué puedo ayudarte?</div>
-    </div>
-    <form id="chatForm">
-      <input id="chatInput" placeholder="Pregunta sobre experiencia, competencias o contacto..." />
-      <button type="submit">Enviar</button>
-    </form>
-  </section>
+  <script>
+const chatForm   = document.getElementById('chatForm');
+const chatInput  = document.getElementById('chatInput');
+const chatLog    = document.getElementById('chatLog');
+const closeChat  = document.getElementById('closeChat');
+const chatbot    = document.getElementById('chatbot');
+
+let userName = null;
+let askingName = false;
+let datosTexto = '';
+
+/* ── Carga datos.txt al arrancar ── */
+fetch('datos.txt')
+  .then(r => r.text())
+  .then(t => { datosTexto = t.toLowerCase(); })
+  .catch(() => { datosTexto = ''; });
+
+/* ── Utilidades de UI ── */
+function addMessage(text, type) {
+  const div = document.createElement('div');
+  div.className = type === 'bot' ? 'bot-message' : 'user-message';
+  div.textContent = text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function botReply(text) {
+  setTimeout(() => addMessage(text, 'bot'), 350);
+}
+
+/* ── Detección de intención ── */
+const SALUDOS = ['hola','buenas','buenos días','buenas tardes',
+                 'buenas noches','hey','ola','hi','hello'];
+const PREGUNTAS_NOMBRE = ['cómo te llamas','como te llamas',
+                          'cuál es tu nombre','cual es tu nombre'];
+const PREGUNTAS_ESTADO = ['cómo estás','como estás','cómo estas',
+                          'como estas','qué tal','que tal','cómo te va',
+                          'como te va','cómo va el día'];
+
+function esSaludo(txt) {
+  return SALUDOS.some(s => txt === s || txt.startsWith(s + ' ') || txt.endsWith(' ' + s));
+}
+function preguntaNombre(txt) { return PREGUNTAS_NOMBRE.some(p => txt.includes(p)); }
+function preguntaEstado(txt)  { return PREGUNTAS_ESTADO.some(p => txt.includes(p)); }
+
+/* ── Búsqueda en datos.txt ── */
+function buscarEnDatos(query) {
+  if (!datosTexto) return null;
+  const palabras = query.split(' ').filter(p => p.length > 3);
+  const lineas = datosTexto.split('\n');
+  let mejorLinea = null;
+  let mejorScore = 0;
+  for (const linea of lineas) {
+    const score = palabras.filter(p => linea.includes(p)).length;
+    if (score > mejorScore) { mejorScore = score; mejorLinea = linea.trim(); }
+  }
+  return mejorScore >= 1 ? mejorLinea : null;
+}
+
+/* ── Lógica principal de respuesta ── */
+function responder(input) {
+  const txt = input.trim().toLowerCase();
+
+  /* El bot preguntó el nombre y el usuario contesta */
+  if (askingName) {
+    askingName = false;
+    const nombre = input.trim().split(' ')[0];
+    userName = nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase();
+    botReply(`¡Encantado de conocerte, ${userName}! 😊 ¿En qué puedo ayudarte hoy?`);
+    return;
+  }
+
+  /* Saludo */
+  if (esSaludo(txt)) {
+    if (userName) {
+      botReply(`¡Hola de nuevo, ${userName}! ¿Cómo te va el día? ¿En qué puedo ayudarte?`);
+    } else {
+      askingName = true;
+      botReply('¡Hola! ¿Cómo estás? Me alegra que estés aquí. ¿Cómo te llamas?');
+    }
+    return;
+  }
+
+  /* Pregunta por el nombre del bot */
+  if (preguntaNombre(txt)) {
+    botReply('Me llamo Asistente Virtual y estoy aquí para ayudarte con información sobre Luis. ¿Cómo te llamas tú?');
+    askingName = true;
+    return;
+  }
+
+  /* Pregunta por el estado */
+  if (preguntaEstado(txt)) {
+    const saludo = userName ? `, ${userName}` : '';
+    botReply(`¡Muy bien${saludo}, gracias por preguntar! 😊 ¿Y a ti cómo te va el día?`);
+    return;
+  }
+
+  /* Buscar en datos.txt */
+  const respuesta = buscarEnDatos(txt);
+  if (respuesta) {
+    botReply(respuesta);
+    return;
+  }
+
+  /* Fallback educado */
+  const disculpa = userName
+    ? `Lo siento, ${userName}`
+    : 'Lo siento';
+  botReply(`${disculpa}, no tengo información sobre ese tema. En la parte inferior de la página encontrarás los datos de contacto de Luis; mejor consúltale directamente a él. ¡Gracias! 🙏`);
+}
+
+/* ── Eventos ── */
+chatForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  addMessage(msg, 'user');
+  chatInput.value = '';
+  responder(msg);
+});
+
+closeChat.addEventListener('click', () => {
+  chatbot.setAttribute('aria-hidden', 'true');
+});
+</script>
 
   <footer class="site-footer">
     <p>© <span id="currentYear"></span> Luis Aladro de Frutos. Dirección Comercial, Marketing Digital e IA aplicada a negocio.</p>
