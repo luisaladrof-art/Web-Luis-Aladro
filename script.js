@@ -7,9 +7,7 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const state = {
   articles: loadArticles(),
-  knowledgeBase: '',
-  userName: null,
-  askingName: false
+  knowledgeBase: ''
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,13 +113,17 @@ function setupEditor() {
   });
 
   [imageOne, imageTwo].forEach(input => input.addEventListener('change', updateImagePreview));
+
   $('#clearEditor').addEventListener('click', () => resetEditor());
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const title = $('#articleTitle').value.trim();
     const articleBody = sanitizeHtml(body.innerHTML.trim());
-    if (!title || !articleBody) { alert('Añade un título y contenido al artículo.'); return; }
+    if (!title || !articleBody) {
+      alert('Añade un título y contenido al artículo.');
+      return;
+    }
 
     const images = await Promise.all([fileToDataUrl(imageOne.files[0]), fileToDataUrl(imageTwo.files[0])]);
     const article = {
@@ -211,23 +213,17 @@ function renderArticles() {
   }));
 }
 
-/* ─────────────────────────────────────────────
-   CHATBOT
-───────────────────────────────────────────── */
 function setupChatbot() {
   const chatbot = $('#chatbot');
-
   $('#chatToggle').addEventListener('click', () => {
     chatbot.classList.add('open');
     chatbot.setAttribute('aria-hidden', 'false');
     $('#chatInput').focus();
   });
-
   $('#closeChat').addEventListener('click', () => {
     chatbot.classList.remove('open');
     chatbot.setAttribute('aria-hidden', 'true');
   });
-
   $('#chatForm').addEventListener('submit', event => {
     event.preventDefault();
     const input = $('#chatInput');
@@ -235,96 +231,168 @@ function setupChatbot() {
     if (!question) return;
     addChatMessage(question, 'user');
     input.value = '';
-    setTimeout(() => addChatMessage(buildReply(question), 'bot'), 380);
+    addChatMessage(answerQuestion(question), 'bot');
   });
 }
 
-function buildReply(input) {
-  const txt = normalizeText(input);
+async function loadKnowledgeBase() {
+  try {
+    const knowledgeFile = ['da', 'tos', '.t', 'xt'].join('');
+    const response = await fetch(knowledgeFile, { cache: 'no-store' });
+    state.knowledgeBase = response.ok ? await response.text() : '';
+  } catch (error) {
+    state.knowledgeBase = '';
+  }
+}
 
-  /* Seguridad: bloquear preguntas sobre código, archivos o credenciales */
+function answerQuestion(question) {
+  const fallback = 'Lo siento, no tengo información suficiente para responder a eso con precisión. Puedes contactar directamente con Luis en la parte inferior de la página.';
+  const normalized = normalizeText(question);
+
+  // Prompt operativo del chatbot.
+  // En esta web estática no hay un system prompt real de OpenAI; por eso las reglas se aplican aquí, en JavaScript.
+  // Objetivo: interpretar la pregunta, elegir intención, calcular duraciones cuando proceda y no pegar bloques largos de datos.txt.
+
   const blockedTopics = [
-    'fichero', 'base de conocimiento', 'password', 'contraseña', 'credenciales',
-    'usuario privado', 'acceso privado', 'prompt', 'codigo fuente', 'script',
-    'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
+    'datos txt', 'txt', 'documento interno', 'archivo interno', 'fichero interno', 'base de conocimiento',
+    'password', 'contraseña', 'credenciales', 'usuario privado', 'acceso privado', 'prompt', 'codigo fuente',
+    'script', 'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
   ];
-  if (blockedTopics.some(term => txt.includes(term))) {
-    return 'Lo siento, no puedo ayudarte con ese tema. En la parte inferior de la página tienes los datos de contacto de Luis. ¡Gracias!';
-  }
+  if (blockedTopics.some(term => normalized.includes(normalizeText(term)))) return fallback;
 
-  /* El bot preguntó el nombre y el usuario contesta */
-  if (state.askingName) {
-    state.askingName = false;
-    const firstName = input.trim().split(' ')[0];
-    state.userName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-    return `¡Encantado de conocerte, ${state.userName}! 😊 ¿En qué puedo ayudarte hoy?`;
-  }
-
-  /* Saludos */
-  const saludos = ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola', 'hi', 'hello'];
-  if (saludos.some(s => txt === s || txt.startsWith(s + ' ') || txt.endsWith(' ' + s))) {
-    if (state.userName) {
-      return `¡Hola de nuevo, ${state.userName}! ¿Cómo te va el día? ¿En qué puedo ayudarte?`;
-    }
-    state.askingName = true;
-    return '¡Hola! ¿Cómo estás? Me alegra que estés aquí. ¿Cómo te llamas?';
-  }
-
-  /* Cortesías y frases sociales */
-  const cortesias = [
-    { keys: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'],
-      reply: () => `¡Muy bien${state.userName ? ', ' + state.userName : ''}, gracias por preguntar! 😊 ¿Y a ti cómo te va el día?` },
-    { keys: ['como te llamas', 'cual es tu nombre', 'quien eres'],
-      reply: () => { state.askingName = true; return '¡Me llamo Asistente Virtual de Luis! ¿Y tú cómo te llamas?'; } },
-    { keys: ['buen dia', 'feliz dia', 'que tengas buen dia'],
-      reply: () => `¡Gracias! Te deseo también un muy buen día${state.userName ? ', ' + state.userName : ''}. 😊` },
-    { keys: ['gracias', 'muchas gracias', 'te lo agradezco'],
-      reply: () => `¡Gracias a ti${state.userName ? ', ' + state.userName : ''}! Ha sido un placer ayudarte.` },
-    { keys: ['adios', 'hasta luego', 'nos vemos', 'chao', 'bye'],
-      reply: () => `¡Hasta luego${state.userName ? ', ' + state.userName : ''}! Que tengas un estupendo día. 👋` }
+  const politeResponses = [
+    { patterns: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola'], response: 'Hola. Soy el asistente virtual de Luis. ¿Qué quieres saber sobre su experiencia, formación, competencias o contacto?' },
+    { patterns: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'], response: 'Muy bien, gracias. Puedo ayudarte con información profesional sobre Luis: experiencia, dirección comercial, marketing, automoción, formación, herramientas o contacto.' },
+    { patterns: ['gracias', 'muchas gracias', 'te lo agradezco'], response: 'Gracias a ti. Ha sido un placer ayudarte.' },
+    { patterns: ['adios', 'hasta luego', 'nos vemos', 'chao'], response: 'Hasta luego. Que tengas un buen día.' }
   ];
 
-  for (const c of cortesias) {
-    if (c.keys.some(k => txt.includes(k))) return c.reply();
+  const politeMatch = politeResponses.find(item => item.patterns.some(pattern => normalized.includes(pattern)));
+  if (politeMatch) return politeMatch.response;
+
+  const hasAny = (terms) => terms.some(term => normalized.includes(normalizeText(term)));
+  const asksYears = hasAny(['cuanto', 'cuantos años', 'años', 'tiempo', 'desde cuando', 'durante cuanto']);
+
+  const current = new Date();
+  const yearsSinceJan2018 = yearsBetween(new Date(2018, 0, 1), current);
+  const yearsCommercialStrict = Math.round((6 + yearsSinceJan2018) * 10) / 10;
+  const yearsMarketingDirector = yearsSinceJan2018;
+
+  // Intenciones específicas primero. Esto evita que "experiencia comercial" caiga en una respuesta genérica.
+  if (asksYears && hasAny(['director de marketing', 'direccion de marketing', 'marketing y ventas'])) {
+    return `Como Director de Marketing y Ventas, Luis trabaja desde enero de 2018 en Grupo Gil Automoción. Eso supone aproximadamente ${formatYears(yearsMarketingDirector)} hasta la actualidad. En ese puesto dirige marketing y ventas multimarca, campañas online y offline, estrategia omnicanal, transformación digital, generación de leads y aperturas de concesionarios.`;
   }
 
-  /* Búsqueda en base de conocimiento */
+  if (asksYears && hasAny(['director comercial', 'direccion comercial', 'director de ventas', 'direccion de ventas'])) {
+    return `En puestos directamente vinculados a dirección comercial y dirección de ventas, Luis acumula aproximadamente ${formatYears(yearsCommercialStrict)}: de 2008 a 2014 como Director Comercial VN y VO / Director de Desarrollo en Grupo CMS, y desde enero de 2018 hasta la actualidad como Director de Marketing y Ventas en Grupo Gil Automoción. Si se considera toda su trayectoria comercial, de ventas y desarrollo de negocio, la experiencia supera los 20 años.`;
+  }
+
+  if (asksYears && hasAny(['comercial', 'ventas', 'desarrollo de negocio', 'b2b', 'b2c', 'grandes cuentas', 'kam'])) {
+    return 'Luis tiene más de 20 años de experiencia comercial. Esa trayectoria incluye dirección de ventas, dirección comercial, desarrollo de negocio, grandes cuentas, gestión B2B y B2C, automoción VN y VO, publicidad, retail y gestión de equipos comerciales.';
+  }
+
+  if (asksYears && hasAny(['experiencia profesional', 'trayectoria profesional', 'trabajado', 'carrera profesional', 'profesional'])) {
+    return 'Luis cuenta con más de 20 años de experiencia profesional en Dirección Comercial, Dirección de Ventas, Desarrollo de Negocio y Marketing Digital, principalmente en automoción, medios de comunicación, energía y retail.';
+  }
+
+  if (hasAny(['contacto', 'email', 'correo', 'telefono', 'llamar', 'ubicacion', 'donde esta', 'localizacion'])) {
+    return 'Puedes contactar con Luis Aladro por email en luis.aladro.f@gmail.com o por teléfono en el 625 631 432. Su ubicación profesional es Madrid, Las Tablas.';
+  }
+
+  if (hasAny(['formacion', 'estudios', 'academica', 'titulacion', 'power mba', 'powermba', 'transformacion digital', 'ingenieria', 'electronica'])) {
+    return 'Luis cuenta con formación en IA aplicada a negocio, The PowerMBA Business & Strategy Program, Programa Avanzado de Transformación Digital, Dirección de Marketing y Ventas, Ingeniería Técnica Industrial y Técnico Especialista en Electrónica Industrial.';
+  }
+
+  if (hasAny(['herramientas', 'tecnologia', 'crm', 'salesforce', 'hubspot', 'imaweb', 'google analytics', 'google ads', 'meta', 'semrush', 'chatgpt', 'claude', 'gemini', 'grok', 'perplexity', 'notebooklm', 'kimi', 'office', 'photoshop', 'premiere', 'illustrator', 'canva'])) {
+    return 'Luis trabaja con CRM como Salesforce, HubSpot e Imaweb; herramientas de marketing digital como Google Analytics, Google Ads, Meta Business Suite y SEMrush; herramientas de IA como ChatGPT, Claude, Gemini, Grok, Perplexity, NotebookLM y Kimi; Microsoft Office avanzado; y herramientas de diseño y contenido como Photoshop, Premiere Pro, Illustrator y Canva.';
+  }
+
+  if (hasAny(['idioma', 'idiomas', 'ingles', 'frances', 'español', 'carnet', 'carne', 'conducir'])) {
+    return 'Luis tiene español nativo, inglés B1 intermedio y francés B1 intermedio. También dispone de carnés de conducir AM, A1, A2, A, B, BE, C1, C1E y C.';
+  }
+
+  if (hasAny(['experiencia actual', 'actualidad', 'trabajo actual', 'puesto actual', 'grupo gil'])) {
+    return 'Actualmente Luis es Director de Marketing y Ventas en Grupo Gil Automoción desde enero de 2018. Dirige marketing y ventas multimarca de vehículo nuevo y de ocasión, gestiona presupuestos, campañas omnicanal, transformación digital, generación de leads y aperturas de nuevos concesionarios en Madrid.';
+  }
+
+  if (hasAny(['automocion', 'vehiculo', 'vehiculos', 'vn', 'vo', 'concesionario', 'concesionarios', 'flotas', 'grupo gil', 'cms', 'bmw', 'mini', 'opel', 'mazda', 'mitsubishi', 'mg', 'ocasion', 'autoestrena'])) {
+    return 'En automoción, Luis tiene una trayectoria amplia en vehículo nuevo multimarca y vehículo de ocasión. Actualmente dirige marketing y ventas en Grupo Gil Automoción, con responsabilidad sobre estrategia omnicanal, campañas online y offline, gestión presupuestaria, apertura de concesionarios y marcas como AutoestrenaGil.es y OcasionGil.es. Anteriormente trabajó en Grupo CMS con marcas BMW, MINI, Opel y Chevrolet, incluyendo dirección comercial, gestión de equipos, flotas B2B, stock y vehículos de ocasión.';
+  }
+
+  if (hasAny(['experiencia comercial', 'area comercial', 'perfil comercial', 'ventas', 'comercial', 'direccion comercial', 'desarrollo de negocio', 'grandes cuentas', 'kam', 'b2b', 'b2c', 'p&l', 'presupuesto', 'rentabilidad', 'roi', 'kpi'])) {
+    return 'La experiencia comercial de Luis supera los 20 años. Incluye Dirección de Ventas, Dirección Comercial VN y VO, Desarrollo de Negocio, gestión B2B y B2C, negociación con grandes cuentas, KAM, flotas, gestión de P&L y presupuestos superiores a 600.000 euros, seguimiento de KPIs, ROI y rentabilidad.';
+  }
+
+  if (hasAny(['marketing', 'marketing digital', 'seo', 'sem', 'leads', 'omnicanal', 'campañas', 'campanas', 'analytics', 'meta business', 'google ads'])) {
+    return 'En marketing digital, Luis tiene experiencia en estrategia 360º omnicanal, generación de leads, SEO, SEM, Google Analytics, Google Ads, Meta Business Suite, SEMrush, reporting y campañas online y offline orientadas a objetivos comerciales.';
+  }
+
+  if (hasAny(['inteligencia artificial', 'ia', 'ai', 'aplicada a negocio'])) {
+    return 'Luis está orientado a la Inteligencia Artificial aplicada a negocio, especialmente como apoyo a ventas, marketing, transformación digital, análisis, productividad y generación de oportunidades comerciales.';
+  }
+
+  if (hasAny(['competencias', 'habilidades', 'especialidades', 'capacidades', 'puntos fuertes', 'que sabe hacer'])) {
+    return 'Sus competencias clave incluyen Dirección de Ventas VN y VO, Dirección de Marketing, Desarrollo de Negocio, Estrategia Comercial, P&L y presupuestos, Key Account Management, negociación con grandes cuentas, gestión de flotas B2B, liderazgo de equipos, CRM, Marketing Digital, Transformación Digital, estrategia omnicanal, generación de leads, SEO, SEM, reporting e Inteligencia Artificial aplicada a negocio.';
+  }
+
+  if (hasAny(['experiencia', 'trayectoria', 'profesional', 'carrera', 'trabajos', 'puestos', 'empresas', 'curriculum', 'cv'])) {
+    return 'Luis Aladro es un ejecutivo senior con más de 20 años de experiencia en Dirección Comercial, Dirección de Ventas, Desarrollo de Negocio y Marketing Digital. Ha trabajado en automoción, medios de comunicación, energía y retail, con responsabilidades en gestión de equipos, P&L, grandes cuentas, transformación digital, CRM, generación de leads y estrategia omnicanal.';
+  }
+
+  // Búsqueda secundaria en datos.txt: solo si hay términos suficientes y coincidencia clara.
   const kb = state.knowledgeBase || defaultKnowledgeBase();
-  const paragraphs = kb.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
-  const stopWords = new Set(
-    ['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene',
-     'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime',
-     'quiero', 'saber', 'luis', 'aladro'].map(normalizeText)
-  );
-  const words = txt.split(/[^a-z0-9]+/).filter(w => w.length > 3 && !stopWords.has(w));
+  const paragraphs = kb.split(/\n\s*\n/).map(text => text.trim()).filter(Boolean);
+  const stopWords = new Set(['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene', 'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime', 'quiero', 'saber', 'luis', 'aladro', 'experiencia', 'perfil', 'profesional'].map(normalizeText));
+  const words = normalized.split(/[^a-z0-9áéíóúñü]+/i).map(normalizeText).filter(word => word.length > 4 && !stopWords.has(word));
 
-  if (words.length) {
-    const scored = paragraphs
-      .map(text => ({ text, score: words.reduce((acc, w) => acc + (normalizeText(text).includes(w) ? 1 : 0), 0) }))
-      .sort((a, b) => b.score - a.score);
-    if (scored[0]?.score > 0) return cleanBotAnswer(scored[0].text);
+  if (words.length >= 2) {
+    const scored = paragraphs.map(text => {
+      const normalizedText = normalizeText(text);
+      const score = words.reduce((acc, word) => acc + (normalizedText.includes(word) ? 1 : 0), 0);
+      return { text, score };
+    }).sort((a, b) => b.score - a.score);
+
+    if (scored[0] && scored[0].score >= 2) return cleanBotAnswer(summarizeParagraph(scored[0].text));
   }
 
-  /* Fallback educado */
-  const disculpa = state.userName ? `Lo siento, ${state.userName}` : 'Lo siento';
-  return `${disculpa}, no tengo información sobre ese tema. En la parte inferior de la página encontrarás los datos de contacto de Luis; mejor consúltale directamente a él. ¡Gracias! 🙏`;
+  return fallback;
+}
+
+function yearsBetween(startDate, endDate) {
+  const ms = endDate - startDate;
+  const years = ms / (365.2425 * 24 * 60 * 60 * 1000);
+  return Math.max(0, Math.round(years * 10) / 10);
+}
+
+function formatYears(value) {
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded < 1) return 'menos de 1 año';
+  if (Math.abs(rounded - 1) < 0.05) return '1 año';
+  return `${String(rounded).replace('.', ',')} años`;
+}
+
+function summarizeParagraph(text) {
+  const cleaned = cleanBotAnswer(text);
+  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
+  return sentences.slice(0, 3).join(' ').trim();
 }
 
 function cleanBotAnswer(text) {
   return text
     .replace(/datos\.txt/gi, '')
-    .replace(/\bdocumento\b/gi, 'información')
-    .replace(/\barchivo\b/gi, 'información')
+    .replace(/documento/gi, 'información')
+    .replace(/archivo/gi, 'información')
     .trim();
 }
 
-async function loadKnowledgeBase() {
-  try {
-    const response = await fetch('datos.txt', { cache: 'no-store' });
-    state.knowledgeBase = response.ok ? await response.text() : '';
-  } catch {
-    state.knowledgeBase = '';
-  }
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9ñü#@.\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function addChatMessage(text, type) {
@@ -334,19 +402,6 @@ function addChatMessage(text, type) {
   message.textContent = text;
   log.appendChild(message);
   log.scrollTop = log.scrollHeight;
-}
-
-/* ─────────────────────────────────────────────
-   UTILIDADES
-───────────────────────────────────────────── */
-function normalizeText(text) {
-  return String(text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 function loadArticles() {
@@ -378,7 +433,10 @@ function sanitizeHtml(html) {
   template.innerHTML = html;
   const allowed = ['B', 'I', 'STRONG', 'EM', 'UL', 'OL', 'LI', 'P', 'BR', 'H3', 'H4', 'A'];
   template.content.querySelectorAll('*').forEach(node => {
-    if (!allowed.includes(node.tagName)) { node.replaceWith(...node.childNodes); return; }
+    if (!allowed.includes(node.tagName)) {
+      node.replaceWith(...node.childNodes);
+      return;
+    }
     [...node.attributes].forEach(attr => {
       if (node.tagName === 'A' && attr.name === 'href') return;
       node.removeAttribute(attr.name);
@@ -389,28 +447,15 @@ function sanitizeHtml(html) {
 
 function stripTags(html) { return html.replace(/<[^>]*>?/gm, ' '); }
 function escapeHtml(text) {
-  return text.replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+  return text.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 function formatDate(value) { return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(value)); }
-
 function defaultKnowledgeBase() {
-  return `Luis Aladro de Frutos es Director Comercial, Director de Ventas, especialista en Desarrollo de Negocio y Marketing Digital en Madrid, Las Tablas.
+  return `Luis Aladro de Frutos es Director Comercial, Director de Ventas, especialista en Desarrollo de Negocio y Marketing Digital en Madrid.
 
-Tiene más de 20 años de experiencia en Dirección Comercial, Desarrollo de Negocio y Marketing Digital en sectores competitivos, con foco en automoción, medios de comunicación, energía y retail. Gestiona presupuestos superiores a 600.000 euros con foco en ROI, KPIs y rentabilidad.
+Tiene más de 20 años de experiencia en Dirección Comercial, Desarrollo de Negocio y Marketing Digital en sectores competitivos, con foco en automoción, medios de comunicación, energía y retail.
 
-Sus competencias clave incluyen Dirección de Ventas VN y VO, Dirección de Marketing, Desarrollo de Negocio, Estrategia Comercial, P&L y Presupuestos, KAM, grandes cuentas, flotas B2B, liderazgo y coaching de equipos, CRM Salesforce HubSpot Imaweb, Marketing Digital, Transformación Digital, Estrategia Omnicanal, Generación de Leads, SEO, SEM, Google Analytics, Meta Business Suite, Forecasting, Reporting, apertura de centros e Inteligencia Artificial aplicada a negocio.
+Sus competencias clave incluyen Dirección de Ventas, Dirección de Marketing, P&L, KAM, grandes cuentas, flotas B2B, CRM, marketing digital, estrategia omnicanal, generación de leads, SEO, SEM, reporting e inteligencia artificial aplicada a negocio.
 
-Desde enero de 2018 trabaja en Grupo Gil Automoción como Director de Marketing y Ventas. Gestiona ventas multimarca en vehículo nuevo y de ocasión, productos financieros, estrategia 360 omnicanal, campañas Google Ads y Meta Business Suite, apertura de concesionarios en Madrid y las marcas AutoestrenaGil.es y OcasionGil.es.
-
-Experiencia anterior: Director de Publicidad en El Distrito Comunicación (2014-2017). Director Comercial VN VO y Director de Desarrollo en Grupo CMS con marcas BMW MINI Opel Chevrolet (2008-2014). Director de Desarrollo de Negocio en Dilab Sunglasses (2007-2008). Director de Desarrollo y Grandes Cuentas en Prevensis con clientes BP Endesa Iberdrola Repsol HP (2005-2007). Formador Freelance en TIC (1999-2005). Gestión de negocio familiar en Fruar S.A. Agencia Renault (1986-2002).
-
-Más de 25 años de experiencia en automoción. Más de 30 años en ventas. Más de 10 años como formador.
-
-Formación: Ingeniería Técnica Industrial, Técnico Especialista en Electrónica Industrial, Dirección de Marketing y Ventas, Programa Avanzado de Transformación Digital, The PowerMBA Business & Strategy Program, Formación en IA Aplicada a Negocio (2024-2026).
-
-Herramientas: Salesforce, HubSpot, Imaweb, DMS, Google Analytics, Google Ads, Meta Business Suite, SEMrush, ChatGPT, Claude, Gemini, Grok, Perplexity, NotebookLM, Kimi, Microsoft Office, Adobe Photoshop, Premiere Pro, Illustrator y Canva.
-
-Idiomas: Español nativo, Inglés B1 intermedio, Francés B1 intermedio. Carnés de conducir AM A1 A2 A B BE C1 C1E y C.
-
-Contacto: email luis.aladro.f@gmail.com, teléfono 625 631 432, ubicación Madrid Las Tablas.`;
+Contacto: luis.aladro.f@gmail.com y 625 631 432. Ubicación: Madrid, Las Tablas.`;
 }
