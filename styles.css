@@ -114,13 +114,54 @@ p { color: var(--muted); line-height: 1.72; }
 .article-toolbar select { max-width: 210px; }
 .article-toolbar input:focus, .article-toolbar select:focus, .form-stack input:focus, .rich-editor:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(84,230,255,.09); }
 .articles-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.article-card { overflow: hidden; display: flex; flex-direction: column; }
-.article-card img { width: 100%; height: 210px; object-fit: cover; }
+.article-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+.article-card:hover,
+.article-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(84,230,255,.36);
+  outline: none;
+}
+.article-card img,
+.article-card-cover {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  background: rgba(255,255,255,.06);
+}
+.article-card-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
 .article-card-content { padding: 22px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.article-card-compact h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
 .article-card time { color: var(--cyan); font-size: 13px; font-weight: 700; }
 .article-card .tags { display: flex; gap: 7px; flex-wrap: wrap; }
 .article-card .tags span { background: rgba(167,108,255,.13); border: 1px solid rgba(167,108,255,.24); color: #eadfff; padding: 6px 8px; border-radius: 999px; font-size: 12px; }
 .article-card .article-body { color: var(--muted); line-height: 1.68; max-height: 230px; overflow: auto; }
+.article-card-compact .read-more {
+  color: var(--cyan);
+  font-weight: 800;
+  font-size: 14px;
+  margin-top: 2px;
+}
+.article-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
 .empty-state { grid-column: 1/-1; padding: 34px; text-align: center; }
 .contact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .contact-card { padding: 26px; transition: .2s ease; }

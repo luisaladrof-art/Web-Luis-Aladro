@@ -290,16 +290,13 @@ function renderArticles() {
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Abrir artículo: ${article.title}`);
     card.dataset.openArticle = article.id;
-    const cover = article.images[0] ? `<img src="${article.images[0]}" alt="Imagen del artículo ${escapeHtml(article.title)}">` : '';
-    const tags = article.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
+    const cover = article.images[0]
+      ? `<img class="article-card-cover" src="${article.images[0]}" alt="Imagen del artículo ${escapeHtml(article.title)}">`
+      : `<div class="article-card-cover article-card-placeholder" aria-hidden="true">Sin imagen</div>`;
     card.innerHTML = `
       ${cover}
-      <div class="article-card-content">
-        <time datetime="${article.createdAt}">${formatDate(article.createdAt)}</time>
+      <div class="article-card-content article-card-compact">
         <h3>${escapeHtml(article.title)}</h3>
-        ${article.subtitle ? `<p>${escapeHtml(article.subtitle)}</p>` : ''}
-        ${tags ? `<div class="tags">${tags}</div>` : ''}
-        <div class="article-body">${article.body}</div>
         <span class="read-more">Leer artículo completo</span>
         <div class="article-actions">
           <button class="secondary-action small" data-edit="${article.id}">Editar</button>
