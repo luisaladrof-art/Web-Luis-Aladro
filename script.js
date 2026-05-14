@@ -7,7 +7,8 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const state = {
   articles: loadArticles(),
-  knowledgeBase: ''
+  knowledgeBase: '',
+  editingArticleId: null
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -71,6 +72,7 @@ function setupPrivatePanel() {
       $('#loginError').textContent = '';
       loginView.hidden = true;
       editorView.hidden = false;
+      setEditorMode();
       $('#articleTitle').focus();
     } else {
       $('#loginError').textContent = 'Usuario o contraseña incorrectos.';
@@ -79,9 +81,11 @@ function setupPrivatePanel() {
 
   $('#logoutBtn').addEventListener('click', () => {
     sessionStorage.removeItem('privateAccess');
+    state.editingArticleId = null;
     loginView.hidden = false;
     editorView.hidden = true;
     loginForm.reset();
+    resetEditor();
   });
 
   function openPanel() {
@@ -90,8 +94,11 @@ function setupPrivatePanel() {
     const hasAccess = sessionStorage.getItem('privateAccess') === 'true';
     loginView.hidden = hasAccess;
     editorView.hidden = !hasAccess;
+    setEditorMode();
     setTimeout(() => (hasAccess ? $('#articleTitle') : $('#username')).focus(), 50);
   }
+
+  window.openPrivatePanel = openPanel;
 
   function closePanel() {
     panel.classList.remove('open');
@@ -114,7 +121,11 @@ function setupEditor() {
 
   [imageOne, imageTwo].forEach(input => input.addEventListener('change', updateImagePreview));
 
-  $('#clearEditor').addEventListener('click', () => resetEditor());
+  $('#clearEditor').addEventListener('click', () => {
+    state.editingArticleId = null;
+    resetEditor();
+    setEditorMode();
+  });
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -125,21 +136,51 @@ function setupEditor() {
       return;
     }
 
-    const images = await Promise.all([fileToDataUrl(imageOne.files[0]), fileToDataUrl(imageTwo.files[0])]);
-    const article = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    const currentArticle = state.editingArticleId
+      ? state.articles.find(article => article.id === state.editingArticleId)
+      : null;
+
+    const uploadedImages = await Promise.all([
+      fileToDataUrl(imageOne.files[0]),
+      fileToDataUrl(imageTwo.files[0])
+    ]);
+
+    const images = uploadedImages.some(Boolean)
+      ? uploadedImages.filter(Boolean)
+      : (currentArticle?.images || []);
+
+    const articleData = {
       title,
       subtitle: $('#articleSubtitle').value.trim(),
       tags: $('#articleTags').value.split(',').map(tag => tag.trim()).filter(Boolean),
       body: articleBody,
-      images: images.filter(Boolean),
-      createdAt: new Date().toISOString()
+      images,
+      updatedAt: new Date().toISOString()
     };
-    state.articles.unshift(article);
-    saveArticles();
+
+    if (currentArticle) {
+      Object.assign(currentArticle, articleData);
+    } else {
+      state.articles.unshift({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        ...articleData,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    try {
+      saveArticles();
+    } catch (error) {
+      alert('No se ha podido guardar el artículo. Las imágenes son demasiado pesadas para el almacenamiento local del navegador. Prueba con fotos más ligeras o comprimidas.');
+      return;
+    }
+
     renderArticles();
+    const wasEditing = Boolean(state.editingArticleId);
+    state.editingArticleId = null;
     resetEditor();
-    alert('Artículo publicado correctamente.');
+    setEditorMode();
+    alert(wasEditing ? 'Artículo actualizado correctamente.' : 'Artículo publicado correctamente.');
     location.hash = '#articulos';
   });
 }
@@ -147,12 +188,70 @@ function setupEditor() {
 function updateImagePreview() {
   const preview = $('#imagePreview');
   preview.innerHTML = '';
-  [$('#imageOne').files[0], $('#imageTwo').files[0]].filter(Boolean).forEach(file => {
+
+  const editingArticle = state.editingArticleId
+    ? state.articles.find(article => article.id === state.editingArticleId)
+    : null;
+
+  const selectedFiles = [$('#imageOne').files[0], $('#imageTwo').files[0]].filter(Boolean);
+
+  if (!selectedFiles.length && editingArticle?.images?.length) {
+    editingArticle.images.forEach((src, index) => {
+      const img = document.createElement('img');
+      img.alt = `Imagen actual ${index + 1} del artículo`;
+      img.src = src;
+      preview.appendChild(img);
+    });
+    return;
+  }
+
+  selectedFiles.forEach(file => {
     const img = document.createElement('img');
     img.alt = file.name;
     img.src = URL.createObjectURL(file);
     preview.appendChild(img);
   });
+}
+
+function setEditorMode() {
+  const title = $('#editorView h2');
+  const submitButton = $('#articleForm button[type="submit"]');
+  const clearButton = $('#clearEditor');
+
+  if (!title || !submitButton) return;
+
+  if (state.editingArticleId) {
+    title.textContent = 'Editar artículo';
+    submitButton.textContent = 'Guardar cambios';
+    if (clearButton) clearButton.textContent = 'Cancelar edición';
+  } else {
+    title.textContent = 'Nuevo artículo';
+    submitButton.textContent = 'Publicar artículo';
+    if (clearButton) clearButton.textContent = 'Limpiar';
+  }
+}
+
+function editArticle(articleId) {
+  const article = state.articles.find(item => item.id === articleId);
+  if (!article) return;
+
+  if (sessionStorage.getItem('privateAccess') !== 'true') {
+    alert('Debes acceder al área privada para editar artículos.');
+    if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
+    return;
+  }
+
+  state.editingArticleId = article.id;
+  $('#articleTitle').value = article.title || '';
+  $('#articleSubtitle').value = article.subtitle || '';
+  $('#articleTags').value = (article.tags || []).join(', ');
+  $('#articleBody').innerHTML = article.body || '';
+  $('#imageOne').value = '';
+  $('#imageTwo').value = '';
+  updateImagePreview();
+  setEditorMode();
+
+  if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
 }
 
 function setupArticles() {
@@ -197,16 +296,27 @@ function renderArticles() {
         ${tags ? `<div class="tags">${tags}</div>` : ''}
         <div class="article-body">${article.body}</div>
         ${article.images[1] ? `<img src="${article.images[1]}" alt="Imagen complementaria del artículo ${escapeHtml(article.title)}">` : ''}
-        <button class="secondary-action small" data-delete="${article.id}">Eliminar</button>
+        <div class="article-actions">
+          <button class="secondary-action small" data-edit="${article.id}">Editar</button>
+          <button class="secondary-action small" data-delete="${article.id}">Eliminar</button>
+        </div>
       </div>`;
     grid.appendChild(card);
   });
 
+  $$('[data-edit]').forEach(button => button.addEventListener('click', () => {
+    editArticle(button.dataset.edit);
+  }));
+
   $$('[data-delete]').forEach(button => button.addEventListener('click', () => {
     if (sessionStorage.getItem('privateAccess') !== 'true') {
       alert('Debes acceder al área privada para eliminar artículos.');
+      if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
       return;
     }
+
+    if (!confirm('¿Seguro que quieres eliminar este artículo?')) return;
+
     state.articles = state.articles.filter(article => article.id !== button.dataset.delete);
     saveArticles();
     renderArticles();
@@ -246,23 +356,21 @@ async function loadKnowledgeBase() {
 }
 
 function answerQuestion(question) {
-  const fallback = 'Lo siento, no tengo información suficiente para responder a eso con precisión. Puedes contactar directamente con Luis en la parte inferior de la página.';
+  const fallback = 'Lo siento, no te puedo ayudar con eso. Si quieres más información puedes dirigirte a Luis directamente, en la parte inferior de la página tienes su contacto. Gracias.';
   const normalized = normalizeText(question);
 
-  // Prompt operativo del chatbot.
-  // En esta web estática no hay un system prompt real de OpenAI; por eso las reglas se aplican aquí, en JavaScript.
-  // Objetivo: interpretar la pregunta, elegir intención, calcular duraciones cuando proceda y no pegar bloques largos de datos.txt.
-
+  // Nunca se muestra información técnica, nombres de archivos internos, credenciales ni detalles de implementación.
   const blockedTopics = [
-    'datos txt', 'txt', 'documento interno', 'archivo interno', 'fichero interno', 'base de conocimiento',
-    'password', 'contraseña', 'credenciales', 'usuario privado', 'acceso privado', 'prompt', 'codigo fuente',
+    'datos txt', 'txt', 'documento', 'archivo', 'fichero', 'base de conocimiento', 'password',
+    'contraseña', 'credenciales', 'usuario privado', 'acceso privado', 'prompt', 'codigo fuente',
     'script', 'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
   ];
-  if (blockedTopics.some(term => normalized.includes(normalizeText(term)))) return fallback;
+  if (blockedTopics.some(term => normalized.includes(term))) return fallback;
 
   const politeResponses = [
-    { patterns: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola'], response: 'Hola. Soy el asistente virtual de Luis. ¿Qué quieres saber sobre su experiencia, formación, competencias o contacto?' },
-    { patterns: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'], response: 'Muy bien, gracias. Puedo ayudarte con información profesional sobre Luis: experiencia, dirección comercial, marketing, automoción, formación, herramientas o contacto.' },
+    { patterns: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola'], response: 'Hola. Encantado de saludarte. ¿En qué puedo ayudarte?' },
+    { patterns: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'], response: 'Muy bien, gracias. Espero que tu día vaya estupendamente. ¿En qué puedo ayudarte?' },
+    { patterns: ['buen dia', 'feliz dia', 'que tengas buen dia'], response: 'Gracias. Te deseo también un muy buen día.' },
     { patterns: ['gracias', 'muchas gracias', 'te lo agradezco'], response: 'Gracias a ti. Ha sido un placer ayudarte.' },
     { patterns: ['adios', 'hasta luego', 'nos vemos', 'chao'], response: 'Hasta luego. Que tengas un buen día.' }
   ];
@@ -270,31 +378,9 @@ function answerQuestion(question) {
   const politeMatch = politeResponses.find(item => item.patterns.some(pattern => normalized.includes(pattern)));
   if (politeMatch) return politeMatch.response;
 
-  const hasAny = (terms) => terms.some(term => normalized.includes(normalizeText(term)));
-  const asksYears = hasAny(['cuanto', 'cuantos años', 'años', 'tiempo', 'desde cuando', 'durante cuanto']);
+  const hasAny = (terms) => terms.some(term => normalized.includes(term));
 
-  const current = new Date();
-  const yearsSinceJan2018 = yearsBetween(new Date(2018, 0, 1), current);
-  const yearsCommercialStrict = Math.round((6 + yearsSinceJan2018) * 10) / 10;
-  const yearsMarketingDirector = yearsSinceJan2018;
-
-  // Intenciones específicas primero. Esto evita que "experiencia comercial" caiga en una respuesta genérica.
-  if (asksYears && hasAny(['director de marketing', 'direccion de marketing', 'marketing y ventas'])) {
-    return `Como Director de Marketing y Ventas, Luis trabaja desde enero de 2018 en Grupo Gil Automoción. Eso supone aproximadamente ${formatYears(yearsMarketingDirector)} hasta la actualidad. En ese puesto dirige marketing y ventas multimarca, campañas online y offline, estrategia omnicanal, transformación digital, generación de leads y aperturas de concesionarios.`;
-  }
-
-  if (asksYears && hasAny(['director comercial', 'direccion comercial', 'director de ventas', 'direccion de ventas'])) {
-    return `En puestos directamente vinculados a dirección comercial y dirección de ventas, Luis acumula aproximadamente ${formatYears(yearsCommercialStrict)}: de 2008 a 2014 como Director Comercial VN y VO / Director de Desarrollo en Grupo CMS, y desde enero de 2018 hasta la actualidad como Director de Marketing y Ventas en Grupo Gil Automoción. Si se considera toda su trayectoria comercial, de ventas y desarrollo de negocio, la experiencia supera los 20 años.`;
-  }
-
-  if (asksYears && hasAny(['comercial', 'ventas', 'desarrollo de negocio', 'b2b', 'b2c', 'grandes cuentas', 'kam'])) {
-    return 'Luis tiene más de 20 años de experiencia comercial. Esa trayectoria incluye dirección de ventas, dirección comercial, desarrollo de negocio, grandes cuentas, gestión B2B y B2C, automoción VN y VO, publicidad, retail y gestión de equipos comerciales.';
-  }
-
-  if (asksYears && hasAny(['experiencia profesional', 'trayectoria profesional', 'trabajado', 'carrera profesional', 'profesional'])) {
-    return 'Luis cuenta con más de 20 años de experiencia profesional en Dirección Comercial, Dirección de Ventas, Desarrollo de Negocio y Marketing Digital, principalmente en automoción, medios de comunicación, energía y retail.';
-  }
-
+  // Respuestas por intención. Evita que preguntas distintas devuelvan siempre el primer párrafo coincidente.
   if (hasAny(['contacto', 'email', 'correo', 'telefono', 'llamar', 'ubicacion', 'donde esta', 'localizacion'])) {
     return 'Puedes contactar con Luis Aladro por email en luis.aladro.f@gmail.com o por teléfono en el 625 631 432. Su ubicación profesional es Madrid, Las Tablas.';
   }
@@ -304,23 +390,27 @@ function answerQuestion(question) {
   }
 
   if (hasAny(['herramientas', 'tecnologia', 'crm', 'salesforce', 'hubspot', 'imaweb', 'google analytics', 'google ads', 'meta', 'semrush', 'chatgpt', 'claude', 'gemini', 'grok', 'perplexity', 'notebooklm', 'kimi', 'office', 'photoshop', 'premiere', 'illustrator', 'canva'])) {
-    return 'Luis trabaja con CRM como Salesforce, HubSpot e Imaweb; herramientas de marketing digital como Google Analytics, Google Ads, Meta Business Suite y SEMrush; herramientas de IA como ChatGPT, Claude, Gemini, Grok, Perplexity, NotebookLM y Kimi; Microsoft Office avanzado; y herramientas de diseño y contenido como Photoshop, Premiere Pro, Illustrator y Canva.';
+    return 'Luis trabaja con CRM como Salesforce, HubSpot e Imaweb; herramientas de marketing digital como Google Analytics, Google Ads, Meta Business Suite y SEMrush; herramientas de IA como ChatGPT, Claude, Gemini, Grok, Perplexity, NotebookLM y Kimi; además de Microsoft Office avanzado y soluciones de diseño y contenido como Photoshop, Premiere Pro, Illustrator y Canva.';
   }
 
   if (hasAny(['idioma', 'idiomas', 'ingles', 'frances', 'español', 'carnet', 'carne', 'conducir'])) {
     return 'Luis tiene español nativo, inglés B1 intermedio y francés B1 intermedio. También dispone de carnés de conducir AM, A1, A2, A, B, BE, C1, C1E y C.';
   }
 
-  if (hasAny(['experiencia actual', 'actualidad', 'trabajo actual', 'puesto actual', 'grupo gil'])) {
-    return 'Actualmente Luis es Director de Marketing y Ventas en Grupo Gil Automoción desde enero de 2018. Dirige marketing y ventas multimarca de vehículo nuevo y de ocasión, gestiona presupuestos, campañas omnicanal, transformación digital, generación de leads y aperturas de nuevos concesionarios en Madrid.';
-  }
-
   if (hasAny(['automocion', 'vehiculo', 'vehiculos', 'vn', 'vo', 'concesionario', 'concesionarios', 'flotas', 'grupo gil', 'cms', 'bmw', 'mini', 'opel', 'mazda', 'mitsubishi', 'mg', 'ocasion', 'autoestrena'])) {
-    return 'En automoción, Luis tiene una trayectoria amplia en vehículo nuevo multimarca y vehículo de ocasión. Actualmente dirige marketing y ventas en Grupo Gil Automoción, con responsabilidad sobre estrategia omnicanal, campañas online y offline, gestión presupuestaria, apertura de concesionarios y marcas como AutoestrenaGil.es y OcasionGil.es. Anteriormente trabajó en Grupo CMS con marcas BMW, MINI, Opel y Chevrolet, incluyendo dirección comercial, gestión de equipos, flotas B2B, stock y vehículos de ocasión.';
+    return 'En automoción, Luis tiene una trayectoria amplia en vehículo nuevo multimarca y vehículo de ocasión. Actualmente dirige marketing y ventas en Grupo Gil Automoción, con responsabilidad sobre estrategia omnicanal, campañas online y offline, gestión presupuestaria, apertura de concesionarios y marcas como Opel, Mazda, Mitsubishi, MG, AutoestrenaGil.es y OcasionGil.es. Anteriormente trabajó en Grupo CMS con marcas BMW, MINI, Opel y Chevrolet, incluyendo dirección comercial, gestión de equipos, flotas B2B, stock y vehículos de ocasión.';
   }
 
-  if (hasAny(['experiencia comercial', 'area comercial', 'perfil comercial', 'ventas', 'comercial', 'direccion comercial', 'desarrollo de negocio', 'grandes cuentas', 'kam', 'b2b', 'b2c', 'p&l', 'presupuesto', 'rentabilidad', 'roi', 'kpi'])) {
-    return 'La experiencia comercial de Luis supera los 20 años. Incluye Dirección de Ventas, Dirección Comercial VN y VO, Desarrollo de Negocio, gestión B2B y B2C, negociación con grandes cuentas, KAM, flotas, gestión de P&L y presupuestos superiores a 600.000 euros, seguimiento de KPIs, ROI y rentabilidad.';
+  if (hasAny(['experiencia actual', 'actualidad', 'trabajo actual', 'puesto actual', 'grupo gil'])) {
+    return 'Actualmente Luis es Director de Marketing y Ventas en Grupo Gil Automoción desde enero de 2018. Dirige marketing y ventas multimarca de vehículo nuevo y de ocasión, gestiona presupuestos, campañas omnicanal, transformación digital y aperturas de nuevos concesionarios en Madrid.';
+  }
+
+  if (hasAny(['experiencia', 'trayectoria', 'profesional', 'carrera', 'trabajos', 'puestos', 'empresas', 'curriculum', 'cv'])) {
+    return 'Luis Aladro es un ejecutivo senior con más de 20 años de experiencia en Dirección Comercial, Dirección de Ventas, Desarrollo de Negocio y Marketing Digital. Ha trabajado en sectores como automoción, medios de comunicación, energía y retail, con responsabilidades en gestión de equipos, P&L, grandes cuentas, transformación digital, CRM, generación de leads y estrategia omnicanal.';
+  }
+
+  if (hasAny(['competencias', 'habilidades', 'especialidades', 'capacidades', 'puntos fuertes', 'que sabe hacer'])) {
+    return 'Sus competencias clave incluyen Dirección de Ventas VN y VO, Dirección de Marketing, Desarrollo de Negocio, Estrategia Comercial, P&L y presupuestos, Key Account Management, negociación con grandes cuentas, gestión de flotas B2B, liderazgo de equipos, CRM, Marketing Digital, Transformación Digital, estrategia omnicanal, generación de leads, SEO, SEM, reporting e Inteligencia Artificial aplicada a negocio.';
   }
 
   if (hasAny(['marketing', 'marketing digital', 'seo', 'sem', 'leads', 'omnicanal', 'campañas', 'campanas', 'analytics', 'meta business', 'google ads'])) {
@@ -331,15 +421,11 @@ function answerQuestion(question) {
     return 'Luis está orientado a la Inteligencia Artificial aplicada a negocio, especialmente como apoyo a ventas, marketing, transformación digital, análisis, productividad y generación de oportunidades comerciales.';
   }
 
-  if (hasAny(['competencias', 'habilidades', 'especialidades', 'capacidades', 'puntos fuertes', 'que sabe hacer'])) {
-    return 'Sus competencias clave incluyen Dirección de Ventas VN y VO, Dirección de Marketing, Desarrollo de Negocio, Estrategia Comercial, P&L y presupuestos, Key Account Management, negociación con grandes cuentas, gestión de flotas B2B, liderazgo de equipos, CRM, Marketing Digital, Transformación Digital, estrategia omnicanal, generación de leads, SEO, SEM, reporting e Inteligencia Artificial aplicada a negocio.';
+  if (hasAny(['ventas', 'comercial', 'direccion comercial', 'desarrollo de negocio', 'grandes cuentas', 'kam', 'b2b', 'b2c', 'p&l', 'presupuesto', 'rentabilidad', 'roi', 'kpi'])) {
+    return 'En el área comercial, Luis aporta experiencia en Dirección de Ventas, Desarrollo de Negocio, gestión B2B y B2C, negociación con grandes cuentas, KAM, gestión de P&L y presupuestos superiores a 600.000 euros, seguimiento de KPIs, ROI y rentabilidad.';
   }
 
-  if (hasAny(['experiencia', 'trayectoria', 'profesional', 'carrera', 'trabajos', 'puestos', 'empresas', 'curriculum', 'cv'])) {
-    return 'Luis Aladro es un ejecutivo senior con más de 20 años de experiencia en Dirección Comercial, Dirección de Ventas, Desarrollo de Negocio y Marketing Digital. Ha trabajado en automoción, medios de comunicación, energía y retail, con responsabilidades en gestión de equipos, P&L, grandes cuentas, transformación digital, CRM, generación de leads y estrategia omnicanal.';
-  }
-
-  // Búsqueda secundaria en datos.txt: solo si hay términos suficientes y coincidencia clara.
+  // Búsqueda secundaria limitada, con umbral más alto para evitar respuestas genéricas repetidas.
   const kb = state.knowledgeBase || defaultKnowledgeBase();
   const paragraphs = kb.split(/\n\s*\n/).map(text => text.trim()).filter(Boolean);
   const stopWords = new Set(['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene', 'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime', 'quiero', 'saber', 'luis', 'aladro', 'experiencia', 'perfil', 'profesional'].map(normalizeText));
@@ -352,31 +438,11 @@ function answerQuestion(question) {
       return { text, score };
     }).sort((a, b) => b.score - a.score);
 
-    if (scored[0] && scored[0].score >= 2) return cleanBotAnswer(summarizeParagraph(scored[0].text));
+    if (scored[0] && scored[0].score >= 2) return cleanBotAnswer(scored[0].text);
   }
 
   return fallback;
 }
-
-function yearsBetween(startDate, endDate) {
-  const ms = endDate - startDate;
-  const years = ms / (365.2425 * 24 * 60 * 60 * 1000);
-  return Math.max(0, Math.round(years * 10) / 10);
-}
-
-function formatYears(value) {
-  const rounded = Math.round(value * 10) / 10;
-  if (rounded < 1) return 'menos de 1 año';
-  if (Math.abs(rounded - 1) < 0.05) return '1 año';
-  return `${String(rounded).replace('.', ',')} años`;
-}
-
-function summarizeParagraph(text) {
-  const cleaned = cleanBotAnswer(text);
-  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
-  return sentences.slice(0, 3).join(' ').trim();
-}
-
 function cleanBotAnswer(text) {
   return text
     .replace(/datos\.txt/gi, '')
@@ -409,7 +475,13 @@ function loadArticles() {
   catch { return []; }
 }
 
-function saveArticles() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.articles)); }
+function saveArticles() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.articles));
+  } catch (error) {
+    throw error;
+  }
+}
 
 function resetEditor() {
   $('#articleForm').reset();
@@ -420,9 +492,25 @@ function resetEditor() {
 function fileToDataUrl(file) {
   if (!file) return Promise.resolve(null);
   if (!file.type.startsWith('image/')) return Promise.resolve(null);
+
+  // localStorage tiene poco espacio. Comprimimos las fotos antes de guardarlas para poder publicar varios artículos.
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 1200;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const context = canvas.getContext('2d');
+        context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
