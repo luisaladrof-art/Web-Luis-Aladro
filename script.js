@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPrivatePanel();
   setupEditor();
   setupArticles();
+  setupArticleModal();
   setupChatbot();
   loadKnowledgeBase();
 });
@@ -285,6 +286,10 @@ function renderArticles() {
   articles.forEach(article => {
     const card = document.createElement('article');
     card.className = 'article-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-label', `Abrir artículo: ${article.title}`);
+    card.dataset.openArticle = article.id;
     const cover = article.images[0] ? `<img src="${article.images[0]}" alt="Imagen del artículo ${escapeHtml(article.title)}">` : '';
     const tags = article.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('');
     card.innerHTML = `
@@ -295,7 +300,7 @@ function renderArticles() {
         ${article.subtitle ? `<p>${escapeHtml(article.subtitle)}</p>` : ''}
         ${tags ? `<div class="tags">${tags}</div>` : ''}
         <div class="article-body">${article.body}</div>
-        ${article.images[1] ? `<img src="${article.images[1]}" alt="Imagen complementaria del artículo ${escapeHtml(article.title)}">` : ''}
+        <span class="read-more">Leer artículo completo</span>
         <div class="article-actions">
           <button class="secondary-action small" data-edit="${article.id}">Editar</button>
           <button class="secondary-action small" data-delete="${article.id}">Eliminar</button>
@@ -304,11 +309,27 @@ function renderArticles() {
     grid.appendChild(card);
   });
 
-  $$('[data-edit]').forEach(button => button.addEventListener('click', () => {
+
+  $$('[data-open-article]').forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('button')) return;
+      openArticleModal(card.dataset.openArticle);
+    });
+    card.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      if (event.target.closest('button')) return;
+      event.preventDefault();
+      openArticleModal(card.dataset.openArticle);
+    });
+  });
+
+  $$('[data-edit]').forEach(button => button.addEventListener('click', event => {
+    event.stopPropagation();
     editArticle(button.dataset.edit);
   }));
 
-  $$('[data-delete]').forEach(button => button.addEventListener('click', () => {
+  $$('[data-delete]').forEach(button => button.addEventListener('click', event => {
+    event.stopPropagation();
     if (sessionStorage.getItem('privateAccess') !== 'true') {
       alert('Debes acceder al área privada para eliminar artículos.');
       if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
@@ -321,6 +342,67 @@ function renderArticles() {
     saveArticles();
     renderArticles();
   }));
+}
+
+
+function setupArticleModal() {
+  if ($('#articleModal')) return;
+
+  const modal = document.createElement('section');
+  modal.id = 'articleModal';
+  modal.className = 'article-modal';
+  modal.setAttribute('aria-hidden', 'true');
+  modal.innerHTML = `
+    <div class="article-modal-overlay" data-close-article-modal></div>
+    <article class="article-modal-window" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
+      <button class="article-modal-close" type="button" data-close-article-modal aria-label="Cerrar artículo">×</button>
+      <div id="articleModalContent" class="article-modal-content"></div>
+    </article>`;
+  document.body.appendChild(modal);
+
+  $$('[data-close-article-modal]', modal).forEach(element => {
+    element.addEventListener('click', closeArticleModal);
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && modal.classList.contains('open')) closeArticleModal();
+  });
+}
+
+function openArticleModal(articleId) {
+  const article = state.articles.find(item => item.id === articleId);
+  if (!article) return;
+
+  const modal = $('#articleModal');
+  const content = $('#articleModalContent');
+  const tags = article.tags?.length ? `<div class="article-modal-tags">${article.tags.map(tag => `<span>${escapeHtml(tag)}</span>`).join('')}</div>` : '';
+  const images = (article.images || []).map((src, index) => `
+    <figure class="article-modal-figure">
+      <img src="${src}" alt="${index === 0 ? 'Imagen principal' : 'Imagen complementaria'} del artículo ${escapeHtml(article.title)}">
+    </figure>`).join('');
+
+  content.innerHTML = `
+    <header class="article-modal-header">
+      <time datetime="${article.createdAt}">${formatDate(article.createdAt)}</time>
+      <h2 id="articleModalTitle">${escapeHtml(article.title)}</h2>
+      ${article.subtitle ? `<p class="article-modal-subtitle">${escapeHtml(article.subtitle)}</p>` : ''}
+      ${tags}
+    </header>
+    ${images}
+    <div class="article-modal-body">${article.body}</div>`;
+
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  $('.article-modal-close', modal).focus();
+}
+
+function closeArticleModal() {
+  const modal = $('#articleModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
 }
 
 function setupChatbot() {
