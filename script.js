@@ -7,7 +7,9 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const state = {
   articles: loadArticles(),
-  knowledgeBase: ''
+  knowledgeBase: '',
+  userName: null,
+  askingName: false
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -113,17 +115,13 @@ function setupEditor() {
   });
 
   [imageOne, imageTwo].forEach(input => input.addEventListener('change', updateImagePreview));
-
   $('#clearEditor').addEventListener('click', () => resetEditor());
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const title = $('#articleTitle').value.trim();
     const articleBody = sanitizeHtml(body.innerHTML.trim());
-    if (!title || !articleBody) {
-      alert('Añade un título y contenido al artículo.');
-      return;
-    }
+    if (!title || !articleBody) { alert('Añade un título y contenido al artículo.'); return; }
 
     const images = await Promise.all([fileToDataUrl(imageOne.files[0]), fileToDataUrl(imageTwo.files[0])]);
     const article = {
@@ -213,17 +211,23 @@ function renderArticles() {
   }));
 }
 
+/* ─────────────────────────────────────────────
+   CHATBOT
+───────────────────────────────────────────── */
 function setupChatbot() {
   const chatbot = $('#chatbot');
+
   $('#chatToggle').addEventListener('click', () => {
     chatbot.classList.add('open');
     chatbot.setAttribute('aria-hidden', 'false');
     $('#chatInput').focus();
   });
+
   $('#closeChat').addEventListener('click', () => {
     chatbot.classList.remove('open');
     chatbot.setAttribute('aria-hidden', 'true');
   });
+
   $('#chatForm').addEventListener('submit', event => {
     event.preventDefault();
     const input = $('#chatInput');
@@ -231,76 +235,96 @@ function setupChatbot() {
     if (!question) return;
     addChatMessage(question, 'user');
     input.value = '';
-    addChatMessage(answerQuestion(question), 'bot');
+    setTimeout(() => addChatMessage(buildReply(question), 'bot'), 380);
   });
 }
 
-async function loadKnowledgeBase() {
-  try {
-    const knowledgeFile = ['da', 'tos', '.t', 'xt'].join('');
-    const response = await fetch(knowledgeFile, { cache: 'no-store' });
-    state.knowledgeBase = response.ok ? await response.text() : '';
-  } catch (error) {
-    state.knowledgeBase = '';
-  }
-}
+function buildReply(input) {
+  const txt = normalizeText(input);
 
-function answerQuestion(question) {
-  const fallback = 'Lo siento, no te puedo ayudar con eso. Si quieres más información puedes dirigirte a Luis directamente, en la parte inferior de la página tienes su contacto. Gracias.';
-  const normalized = normalizeText(question);
-
-  // Nunca se muestra información técnica, nombres de archivos internos, credenciales ni detalles de implementación.
+  /* Seguridad: bloquear preguntas sobre código, archivos o credenciales */
   const blockedTopics = [
-    'datos txt', 'txt', 'documento', 'archivo', 'fichero', 'base de conocimiento', 'password',
-    'contraseña', 'credenciales', 'usuario privado', 'acceso privado', 'prompt', 'codigo fuente',
-    'script', 'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
+    'fichero', 'base de conocimiento', 'password', 'contraseña', 'credenciales',
+    'usuario privado', 'acceso privado', 'prompt', 'codigo fuente', 'script',
+    'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
   ];
-  if (blockedTopics.some(term => normalized.includes(term))) return fallback;
+  if (blockedTopics.some(term => txt.includes(term))) {
+    return 'Lo siento, no puedo ayudarte con ese tema. En la parte inferior de la página tienes los datos de contacto de Luis. ¡Gracias!';
+  }
 
-  const politeResponses = [
-    { patterns: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola'], response: 'Hola. Encantado de saludarte. ¿En qué puedo ayudarte?' },
-    { patterns: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'], response: 'Muy bien, gracias. Espero que tu día vaya estupendamente. ¿En qué puedo ayudarte?' },
-    { patterns: ['buen dia', 'feliz dia', 'que tengas buen dia'], response: 'Gracias. Te deseo también un muy buen día.' },
-    { patterns: ['gracias', 'muchas gracias', 'te lo agradezco'], response: 'Gracias a ti. Ha sido un placer ayudarte.' },
-    { patterns: ['adios', 'hasta luego', 'nos vemos', 'chao'], response: 'Hasta luego. Que tengas un buen día.' }
+  /* El bot preguntó el nombre y el usuario contesta */
+  if (state.askingName) {
+    state.askingName = false;
+    const firstName = input.trim().split(' ')[0];
+    state.userName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    return `¡Encantado de conocerte, ${state.userName}! 😊 ¿En qué puedo ayudarte hoy?`;
+  }
+
+  /* Saludos */
+  const saludos = ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola', 'hi', 'hello'];
+  if (saludos.some(s => txt === s || txt.startsWith(s + ' ') || txt.endsWith(' ' + s))) {
+    if (state.userName) {
+      return `¡Hola de nuevo, ${state.userName}! ¿Cómo te va el día? ¿En qué puedo ayudarte?`;
+    }
+    state.askingName = true;
+    return '¡Hola! ¿Cómo estás? Me alegra que estés aquí. ¿Cómo te llamas?';
+  }
+
+  /* Cortesías y frases sociales */
+  const cortesias = [
+    { keys: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'],
+      reply: () => `¡Muy bien${state.userName ? ', ' + state.userName : ''}, gracias por preguntar! 😊 ¿Y a ti cómo te va el día?` },
+    { keys: ['como te llamas', 'cual es tu nombre', 'quien eres'],
+      reply: () => { state.askingName = true; return '¡Me llamo Asistente Virtual de Luis! ¿Y tú cómo te llamas?'; } },
+    { keys: ['buen dia', 'feliz dia', 'que tengas buen dia'],
+      reply: () => `¡Gracias! Te deseo también un muy buen día${state.userName ? ', ' + state.userName : ''}. 😊` },
+    { keys: ['gracias', 'muchas gracias', 'te lo agradezco'],
+      reply: () => `¡Gracias a ti${state.userName ? ', ' + state.userName : ''}! Ha sido un placer ayudarte.` },
+    { keys: ['adios', 'hasta luego', 'nos vemos', 'chao', 'bye'],
+      reply: () => `¡Hasta luego${state.userName ? ', ' + state.userName : ''}! Que tengas un estupendo día. 👋` }
   ];
 
-  const politeMatch = politeResponses.find(item => item.patterns.some(pattern => normalized.includes(pattern)));
-  if (politeMatch) return politeMatch.response;
+  for (const c of cortesias) {
+    if (c.keys.some(k => txt.includes(k))) return c.reply();
+  }
 
+  /* Búsqueda en base de conocimiento */
   const kb = state.knowledgeBase || defaultKnowledgeBase();
-  const paragraphs = kb.split(/\n\s*\n/).map(text => text.trim()).filter(Boolean);
-  const stopWords = new Set(['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene', 'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime', 'quiero', 'saber', 'luis', 'aladro'].map(normalizeText));
-  const words = normalized.split(/[^a-z0-9áéíóúñü]+/i).map(normalizeText).filter(word => word.length > 3 && !stopWords.has(word));
+  const paragraphs = kb.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean);
+  const stopWords = new Set(
+    ['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene',
+     'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime',
+     'quiero', 'saber', 'luis', 'aladro'].map(normalizeText)
+  );
+  const words = txt.split(/[^a-z0-9]+/).filter(w => w.length > 3 && !stopWords.has(w));
 
-  if (!words.length) return fallback;
+  if (words.length) {
+    const scored = paragraphs
+      .map(text => ({ text, score: words.reduce((acc, w) => acc + (normalizeText(text).includes(w) ? 1 : 0), 0) }))
+      .sort((a, b) => b.score - a.score);
+    if (scored[0]?.score > 0) return cleanBotAnswer(scored[0].text);
+  }
 
-  const scored = paragraphs.map(text => {
-    const normalizedText = normalizeText(text);
-    const score = words.reduce((acc, word) => acc + (normalizedText.includes(word) ? 1 : 0), 0);
-    return { text, score };
-  }).sort((a, b) => b.score - a.score);
-
-  if (scored[0] && scored[0].score > 0) return cleanBotAnswer(scored[0].text);
-  return fallback;
+  /* Fallback educado */
+  const disculpa = state.userName ? `Lo siento, ${state.userName}` : 'Lo siento';
+  return `${disculpa}, no tengo información sobre ese tema. En la parte inferior de la página encontrarás los datos de contacto de Luis; mejor consúltale directamente a él. ¡Gracias! 🙏`;
 }
 
 function cleanBotAnswer(text) {
   return text
     .replace(/datos\.txt/gi, '')
-    .replace(/documento/gi, 'información')
-    .replace(/archivo/gi, 'información')
+    .replace(/\bdocumento\b/gi, 'información')
+    .replace(/\barchivo\b/gi, 'información')
     .trim();
 }
 
-function normalizeText(text) {
-  return String(text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9ñü#@.\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+async function loadKnowledgeBase() {
+  try {
+    const response = await fetch('datos.txt', { cache: 'no-store' });
+    state.knowledgeBase = response.ok ? await response.text() : '';
+  } catch {
+    state.knowledgeBase = '';
+  }
 }
 
 function addChatMessage(text, type) {
@@ -310,6 +334,19 @@ function addChatMessage(text, type) {
   message.textContent = text;
   log.appendChild(message);
   log.scrollTop = log.scrollHeight;
+}
+
+/* ─────────────────────────────────────────────
+   UTILIDADES
+───────────────────────────────────────────── */
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function loadArticles() {
@@ -341,10 +378,7 @@ function sanitizeHtml(html) {
   template.innerHTML = html;
   const allowed = ['B', 'I', 'STRONG', 'EM', 'UL', 'OL', 'LI', 'P', 'BR', 'H3', 'H4', 'A'];
   template.content.querySelectorAll('*').forEach(node => {
-    if (!allowed.includes(node.tagName)) {
-      node.replaceWith(...node.childNodes);
-      return;
-    }
+    if (!allowed.includes(node.tagName)) { node.replaceWith(...node.childNodes); return; }
     [...node.attributes].forEach(attr => {
       if (node.tagName === 'A' && attr.name === 'href') return;
       node.removeAttribute(attr.name);
@@ -355,15 +389,28 @@ function sanitizeHtml(html) {
 
 function stripTags(html) { return html.replace(/<[^>]*>?/gm, ' '); }
 function escapeHtml(text) {
-  return text.replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+  return text.replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 }
 function formatDate(value) { return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(new Date(value)); }
+
 function defaultKnowledgeBase() {
-  return `Luis Aladro de Frutos es Director Comercial, Director de Ventas, especialista en Desarrollo de Negocio y Marketing Digital en Madrid.
+  return `Luis Aladro de Frutos es Director Comercial, Director de Ventas, especialista en Desarrollo de Negocio y Marketing Digital en Madrid, Las Tablas.
 
-Tiene más de 20 años de experiencia en Dirección Comercial, Desarrollo de Negocio y Marketing Digital en sectores competitivos, con foco en automoción, medios de comunicación, energía y retail.
+Tiene más de 20 años de experiencia en Dirección Comercial, Desarrollo de Negocio y Marketing Digital en sectores competitivos, con foco en automoción, medios de comunicación, energía y retail. Gestiona presupuestos superiores a 600.000 euros con foco en ROI, KPIs y rentabilidad.
 
-Sus competencias clave incluyen Dirección de Ventas, Dirección de Marketing, P&L, KAM, grandes cuentas, flotas B2B, CRM, marketing digital, estrategia omnicanal, generación de leads, SEO, SEM, reporting e inteligencia artificial aplicada a negocio.
+Sus competencias clave incluyen Dirección de Ventas VN y VO, Dirección de Marketing, Desarrollo de Negocio, Estrategia Comercial, P&L y Presupuestos, KAM, grandes cuentas, flotas B2B, liderazgo y coaching de equipos, CRM Salesforce HubSpot Imaweb, Marketing Digital, Transformación Digital, Estrategia Omnicanal, Generación de Leads, SEO, SEM, Google Analytics, Meta Business Suite, Forecasting, Reporting, apertura de centros e Inteligencia Artificial aplicada a negocio.
 
-Contacto: luis.aladro.f@gmail.com y 625 631 432. Ubicación: Madrid, Las Tablas.`;
+Desde enero de 2018 trabaja en Grupo Gil Automoción como Director de Marketing y Ventas. Gestiona ventas multimarca en vehículo nuevo y de ocasión, productos financieros, estrategia 360 omnicanal, campañas Google Ads y Meta Business Suite, apertura de concesionarios en Madrid y las marcas AutoestrenaGil.es y OcasionGil.es.
+
+Experiencia anterior: Director de Publicidad en El Distrito Comunicación (2014-2017). Director Comercial VN VO y Director de Desarrollo en Grupo CMS con marcas BMW MINI Opel Chevrolet (2008-2014). Director de Desarrollo de Negocio en Dilab Sunglasses (2007-2008). Director de Desarrollo y Grandes Cuentas en Prevensis con clientes BP Endesa Iberdrola Repsol HP (2005-2007). Formador Freelance en TIC (1999-2005). Gestión de negocio familiar en Fruar S.A. Agencia Renault (1986-2002).
+
+Más de 25 años de experiencia en automoción. Más de 30 años en ventas. Más de 10 años como formador.
+
+Formación: Ingeniería Técnica Industrial, Técnico Especialista en Electrónica Industrial, Dirección de Marketing y Ventas, Programa Avanzado de Transformación Digital, The PowerMBA Business & Strategy Program, Formación en IA Aplicada a Negocio (2024-2026).
+
+Herramientas: Salesforce, HubSpot, Imaweb, DMS, Google Analytics, Google Ads, Meta Business Suite, SEMrush, ChatGPT, Claude, Gemini, Grok, Perplexity, NotebookLM, Kimi, Microsoft Office, Adobe Photoshop, Premiere Pro, Illustrator y Canva.
+
+Idiomas: Español nativo, Inglés B1 intermedio, Francés B1 intermedio. Carnés de conducir AM A1 A2 A B BE C1 C1E y C.
+
+Contacto: email luis.aladro.f@gmail.com, teléfono 625 631 432, ubicación Madrid Las Tablas.`;
 }
