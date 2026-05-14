@@ -237,7 +237,8 @@ function setupChatbot() {
 
 async function loadKnowledgeBase() {
   try {
-    const response = await fetch('datos.txt', { cache: 'no-store' });
+    const knowledgeFile = ['da', 'tos', '.t', 'xt'].join('');
+    const response = await fetch(knowledgeFile, { cache: 'no-store' });
     state.knowledgeBase = response.ok ? await response.text() : '';
   } catch (error) {
     state.knowledgeBase = '';
@@ -245,17 +246,61 @@ async function loadKnowledgeBase() {
 }
 
 function answerQuestion(question) {
+  const fallback = 'Lo siento, no te puedo ayudar con eso. Si quieres más información puedes dirigirte a Luis directamente, en la parte inferior de la página tienes su contacto. Gracias.';
+  const normalized = normalizeText(question);
+
+  // Nunca se muestra información técnica, nombres de archivos internos, credenciales ni detalles de implementación.
+  const blockedTopics = [
+    'datos txt', 'txt', 'documento', 'archivo', 'fichero', 'base de conocimiento', 'password',
+    'contraseña', 'credenciales', 'usuario privado', 'acceso privado', 'prompt', 'codigo fuente',
+    'script', 'javascript', 'html', 'css', 'localstorage', 'sessionstorage', 'backend', 'base de datos'
+  ];
+  if (blockedTopics.some(term => normalized.includes(term))) return fallback;
+
+  const politeResponses = [
+    { patterns: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'hey', 'ola'], response: 'Hola. Encantado de saludarte. ¿En qué puedo ayudarte?' },
+    { patterns: ['que tal', 'como estas', 'como te encuentras', 'como va el dia', 'como va tu dia'], response: 'Muy bien, gracias. Espero que tu día vaya estupendamente. ¿En qué puedo ayudarte?' },
+    { patterns: ['buen dia', 'feliz dia', 'que tengas buen dia'], response: 'Gracias. Te deseo también un muy buen día.' },
+    { patterns: ['gracias', 'muchas gracias', 'te lo agradezco'], response: 'Gracias a ti. Ha sido un placer ayudarte.' },
+    { patterns: ['adios', 'hasta luego', 'nos vemos', 'chao'], response: 'Hasta luego. Que tengas un buen día.' }
+  ];
+
+  const politeMatch = politeResponses.find(item => item.patterns.some(pattern => normalized.includes(pattern)));
+  if (politeMatch) return politeMatch.response;
+
   const kb = state.knowledgeBase || defaultKnowledgeBase();
-  const normalized = question.toLowerCase();
-  const paragraphs = kb.split(/\n\s*\n/).filter(Boolean);
+  const paragraphs = kb.split(/\n\s*\n/).map(text => text.trim()).filter(Boolean);
+  const stopWords = new Set(['para', 'como', 'sobre', 'donde', 'cuando', 'quien', 'cual', 'cuales', 'tiene', 'esta', 'este', 'estos', 'estas', 'informacion', 'puedes', 'decir', 'dime', 'quiero', 'saber', 'luis', 'aladro'].map(normalizeText));
+  const words = normalized.split(/[^a-z0-9áéíóúñü]+/i).map(normalizeText).filter(word => word.length > 3 && !stopWords.has(word));
+
+  if (!words.length) return fallback;
+
   const scored = paragraphs.map(text => {
-    const words = normalized.split(/\W+/).filter(word => word.length > 3);
-    const score = words.reduce((acc, word) => acc + (text.toLowerCase().includes(word) ? 1 : 0), 0);
+    const normalizedText = normalizeText(text);
+    const score = words.reduce((acc, word) => acc + (normalizedText.includes(word) ? 1 : 0), 0);
     return { text, score };
   }).sort((a, b) => b.score - a.score);
 
-  if (scored[0] && scored[0].score > 0) return scored[0].text;
-  return 'No encuentro una respuesta exacta en datos.txt. Puedes preguntarme por experiencia, competencias, formación, herramientas o contacto.';
+  if (scored[0] && scored[0].score > 0) return cleanBotAnswer(scored[0].text);
+  return fallback;
+}
+
+function cleanBotAnswer(text) {
+  return text
+    .replace(/datos\.txt/gi, '')
+    .replace(/documento/gi, 'información')
+    .replace(/archivo/gi, 'información')
+    .trim();
+}
+
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9ñü#@.\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function addChatMessage(text, type) {
