@@ -566,6 +566,13 @@ function closeArticleModal() {
 
 function setupChatbot() {
   const chatbot = $('#chatbot');
+
+  // Abrir automáticamente al cargar la página (con pequeño retardo para que la web cargue primero)
+  setTimeout(() => {
+    chatbot.classList.add('open');
+    chatbot.setAttribute('aria-hidden', 'false');
+  }, 800);
+
   $('#chatToggle').addEventListener('click', () => {
     chatbot.classList.add('open');
     chatbot.setAttribute('aria-hidden', 'false');
