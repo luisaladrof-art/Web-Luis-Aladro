@@ -1,5 +1,3 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
 const ARTICLE_BUCKET = 'article-images';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -38,6 +36,8 @@ function initSupabase() {
     return;
   }
 
+  const createClient = (window.supabase || {}).createClient;
+  if (!createClient) { console.error('Supabase no cargado.'); return; }
   state.supabase = createClient(url, anonKey, {
     auth: {
       persistSession: true,
@@ -583,7 +583,7 @@ function setupChatbot() {
     if (!question) return;
     addChatMessage(question, 'user');
     input.value = '';
-    setTimeout(() => addChatMessage(answerQuestion(question), 'bot'), 380);
+    addChatMessage(answerQuestion(question), 'bot');
   });
 }
 
