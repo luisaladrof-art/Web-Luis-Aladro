@@ -218,7 +218,7 @@
         <h2 id="privateTitle">Área de publicación</h2>
         <p>Introduce las credenciales para crear y publicar artículos.</p>
         <form id="loginForm" class="form-stack">
-          <label>Email<input id="username" type="email" autocomplete="username" required placeholder="tu-email@dominio.com" /></label>
+          <label>Usuario<input id="username" type="text" autocomplete="username" required placeholder="Usuario" /></label>
           <label>Contraseña<input id="password" type="password" autocomplete="current-password" required /></label>
           <button class="primary-action" type="submit">Entrar</button>
           <p id="loginError" class="form-error" role="alert"></p>
@@ -281,9 +281,8 @@
     <a href="#top">Volver arriba</a>
   </footer>
 
-  <!-- Supabase cargado como script clásico para que un fallo de red no bloquee el módulo -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="supabase-config.js"></script>
-  <script type="module" src="script.js?v=9"></script>
+  <script type="module" src="script.js?v=10"></script>
 </body>
 </html>

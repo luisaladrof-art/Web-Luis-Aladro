@@ -1,4 +1,6 @@
 const ARTICLE_BUCKET = 'article-images';
+const PRIVATE_USER = 'Aladro';
+const PRIVATE_PASSWORD = 'L4l4dr0#26';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -48,9 +50,8 @@ function initSupabase() {
 }
 
 async function refreshSession() {
-  if (!state.supabase) return;
-  const { data } = await state.supabase.auth.getSession();
-  state.currentUser = data.session?.user || null;
+  // La sesión se gestiona localmente; no usamos Supabase Auth
+  state.currentUser = null;
 }
 
 function isAuthenticated() {
@@ -105,17 +106,15 @@ function setupPrivatePanel() {
       return;
     }
 
-    const email = $('#username').value.trim();
+    const user = $('#username').value.trim();
     const password = $('#password').value;
 
-    const { data, error } = await state.supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      $('#loginError').textContent = 'Email o contraseña incorrectos.';
+    if (user !== PRIVATE_USER || password !== PRIVATE_PASSWORD) {
+      $('#loginError').textContent = 'Usuario o contraseña incorrectos.';
       return;
     }
 
-    state.currentUser = data.user;
+    state.currentUser = { id: 'admin', email: 'admin' };
     $('#loginError').textContent = '';
     loginView.hidden = true;
     editorView.hidden = false;
@@ -124,7 +123,7 @@ function setupPrivatePanel() {
   });
 
   $('#logoutBtn').addEventListener('click', async () => {
-    if (state.supabase) await state.supabase.auth.signOut();
+    // logout local
     state.currentUser = null;
     state.editingArticleId = null;
     loginView.hidden = false;
