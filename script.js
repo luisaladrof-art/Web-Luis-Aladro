@@ -583,7 +583,7 @@ function setupChatbot() {
     if (!question) return;
     addChatMessage(question, 'user');
     input.value = '';
-    addChatMessage(answerQuestion(question), 'bot');
+    setTimeout(() => addChatMessage(answerQuestion(question), 'bot'), 380);
   });
 }
 
@@ -595,12 +595,6 @@ async function loadKnowledgeBase() {
   } catch (error) {
     state.knowledgeBase = '';
   }
-}
-
-function resetEditor() {
-  $('#articleForm').reset();
-  $('#articleBody').innerHTML = '';
-  $('#imagePreview').innerHTML = '';
 }
 
 function answerQuestion(question) {
@@ -716,19 +710,6 @@ function addChatMessage(text, type) {
   message.textContent = text;
   log.appendChild(message);
   log.scrollTop = log.scrollHeight;
-}
-
-function loadArticles() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
-}
-
-function saveArticles() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.articles));
-  } catch (error) {
-    throw error;
-  }
 }
 
 function resetEditor() {
