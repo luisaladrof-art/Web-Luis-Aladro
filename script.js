@@ -217,7 +217,7 @@ function setupEditor() {
       body: articleBody,
       image_urls: imageUrls,
       updated_at: new Date().toISOString(),
-      user_id: state.currentUser.id
+      user_id: null
     };
 
     let result;
