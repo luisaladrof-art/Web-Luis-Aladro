@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshSession();
   setupNavigation();
   setupRevealAnimations();
+  setupScrollEffects();
   setupPrivatePanel();
   setupEditor();
   setupArticles();
@@ -88,6 +89,36 @@ function setupRevealAnimations() {
     });
   }, { threshold: 0.12 });
   $$('.reveal').forEach(el => observer.observe(el));
+}
+
+function setupScrollEffects() {
+  const header = $('.site-header');
+  const parallaxElements = $$('[data-parallax]');
+  let ticking = false;
+
+  const update = () => {
+    const scrollY = window.scrollY || 0;
+    document.documentElement.style.setProperty('--scroll-y', `${scrollY}px`);
+    if (header) header.classList.toggle('is-scrolled', scrollY > 18);
+
+    parallaxElements.forEach(element => {
+      const speed = Number(element.dataset.parallax || 0);
+      const offset = Math.round(scrollY * speed);
+      element.style.setProperty('--parallax-y', `${offset}px`);
+    });
+
+    ticking = false;
+  };
+
+  const requestUpdate = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(update);
+      ticking = true;
+    }
+  };
+
+  update();
+  window.addEventListener('scroll', requestUpdate, { passive: true });
 }
 
 function setupPrivatePanel() {
