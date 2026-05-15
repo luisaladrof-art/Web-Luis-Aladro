@@ -1,18 +1,22 @@
-const PRIVATE_USER = 'Aladro';
-const PRIVATE_PASSWORD = 'L4l4dr0#26';
-const STORAGE_KEY = 'luisAladroArticles';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const ARTICLE_BUCKET = 'article-images';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const state = {
-  articles: loadArticles(),
+  articles: [],
   knowledgeBase: '',
-  editingArticleId: null
+  editingArticleId: null,
+  currentUser: null,
+  supabase: null
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   $('#currentYear').textContent = new Date().getFullYear();
+  initSupabase();
+  await refreshSession();
   setupNavigation();
   setupRevealAnimations();
   setupPrivatePanel();
@@ -21,7 +25,37 @@ document.addEventListener('DOMContentLoaded', () => {
   setupArticleModal();
   setupChatbot();
   loadKnowledgeBase();
+  await loadArticlesFromSupabase();
 });
+
+function initSupabase() {
+  const config = window.supabaseConfig || {};
+  const url = String(config.url || '').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+  const anonKey = config.anonKey;
+
+  if (!url || !anonKey) {
+    console.error('Falta configurar supabase-config.js con url y anonKey.');
+    return;
+  }
+
+  state.supabase = createClient(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+}
+
+async function refreshSession() {
+  if (!state.supabase) return;
+  const { data } = await state.supabase.auth.getSession();
+  state.currentUser = data.session?.user || null;
+}
+
+function isAuthenticated() {
+  return Boolean(state.currentUser);
+}
 
 function setupNavigation() {
   const menuToggle = $('.menu-toggle');
@@ -64,24 +98,34 @@ function setupPrivatePanel() {
   $('#openLogin').addEventListener('click', () => openPanel());
   $$('[data-close-panel]').forEach(el => el.addEventListener('click', () => closePanel()));
 
-  loginForm.addEventListener('submit', event => {
+  loginForm.addEventListener('submit', async event => {
     event.preventDefault();
-    const user = $('#username').value.trim();
-    const password = $('#password').value;
-    if (user === PRIVATE_USER && password === PRIVATE_PASSWORD) {
-      sessionStorage.setItem('privateAccess', 'true');
-      $('#loginError').textContent = '';
-      loginView.hidden = true;
-      editorView.hidden = false;
-      setEditorMode();
-      $('#articleTitle').focus();
-    } else {
-      $('#loginError').textContent = 'Usuario o contraseña incorrectos.';
+    if (!state.supabase) {
+      $('#loginError').textContent = 'La conexión con Supabase no está configurada.';
+      return;
     }
+
+    const email = $('#username').value.trim();
+    const password = $('#password').value;
+
+    const { data, error } = await state.supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      $('#loginError').textContent = 'Email o contraseña incorrectos.';
+      return;
+    }
+
+    state.currentUser = data.user;
+    $('#loginError').textContent = '';
+    loginView.hidden = true;
+    editorView.hidden = false;
+    setEditorMode();
+    $('#articleTitle').focus();
   });
 
-  $('#logoutBtn').addEventListener('click', () => {
-    sessionStorage.removeItem('privateAccess');
+  $('#logoutBtn').addEventListener('click', async () => {
+    if (state.supabase) await state.supabase.auth.signOut();
+    state.currentUser = null;
     state.editingArticleId = null;
     loginView.hidden = false;
     editorView.hidden = true;
@@ -92,7 +136,7 @@ function setupPrivatePanel() {
   function openPanel() {
     panel.classList.add('open');
     panel.setAttribute('aria-hidden', 'false');
-    const hasAccess = sessionStorage.getItem('privateAccess') === 'true';
+    const hasAccess = isAuthenticated();
     loginView.hidden = hasAccess;
     editorView.hidden = !hasAccess;
     setEditorMode();
@@ -130,6 +174,12 @@ function setupEditor() {
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
+
+    if (!state.supabase || !isAuthenticated()) {
+      alert('Debes acceder al área privada para publicar o editar artículos.');
+      return;
+    }
+
     const title = $('#articleTitle').value.trim();
     const articleBody = sanitizeHtml(body.innerHTML.trim());
     if (!title || !articleBody) {
@@ -141,48 +191,125 @@ function setupEditor() {
       ? state.articles.find(article => article.id === state.editingArticleId)
       : null;
 
-    const uploadedImages = await Promise.all([
-      fileToDataUrl(imageOne.files[0]),
-      fileToDataUrl(imageTwo.files[0])
-    ]);
+    const articleId = currentArticle?.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    const files = [imageOne.files[0], imageTwo.files[0]].filter(Boolean);
 
-    const images = uploadedImages.some(Boolean)
-      ? uploadedImages.filter(Boolean)
-      : (currentArticle?.images || []);
-
-    const articleData = {
-      title,
-      subtitle: $('#articleSubtitle').value.trim(),
-      tags: $('#articleTags').value.split(',').map(tag => tag.trim()).filter(Boolean),
-      body: articleBody,
-      images,
-      updatedAt: new Date().toISOString()
-    };
-
-    if (currentArticle) {
-      Object.assign(currentArticle, articleData);
-    } else {
-      state.articles.unshift({
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        ...articleData,
-        createdAt: new Date().toISOString()
-      });
+    let imageUrls = currentArticle?.images || [];
+    if (files.length) {
+      try {
+        const uploadedUrls = [];
+        for (let index = 0; index < files.length; index += 1) {
+          uploadedUrls.push(await uploadArticleImage(files[index], articleId, index));
+        }
+        if (currentArticle?.images?.length) await deleteArticleImages(currentArticle.images);
+        imageUrls = uploadedUrls;
+      } catch (error) {
+        console.error(error);
+        alert('No se han podido subir las imágenes. Revisa el bucket article-images y sus políticas.');
+        return;
+      }
     }
 
-    try {
-      saveArticles();
-    } catch (error) {
-      alert('No se ha podido guardar el artículo. Las imágenes son demasiado pesadas para el almacenamiento local del navegador. Prueba con fotos más ligeras o comprimidas.');
+    const payload = {
+      id: articleId,
+      title,
+      subtitle: $('#articleSubtitle').value.trim() || null,
+      tags: $('#articleTags').value.split(',').map(tag => tag.trim()).filter(Boolean),
+      body: articleBody,
+      image_urls: imageUrls,
+      updated_at: new Date().toISOString(),
+      user_id: state.currentUser.id
+    };
+
+    let result;
+    if (currentArticle) {
+      result = await state.supabase
+        .from('articles')
+        .update(payload)
+        .eq('id', currentArticle.id)
+        .select()
+        .single();
+    } else {
+      result = await state.supabase
+        .from('articles')
+        .insert({ ...payload, created_at: new Date().toISOString() })
+        .select()
+        .single();
+    }
+
+    if (result.error) {
+      console.error(result.error);
+      alert('No se ha podido guardar el artículo. Revisa la tabla articles y las políticas RLS.');
       return;
     }
 
-    renderArticles();
+    await loadArticlesFromSupabase();
     const wasEditing = Boolean(state.editingArticleId);
     state.editingArticleId = null;
     resetEditor();
     setEditorMode();
     alert(wasEditing ? 'Artículo actualizado correctamente.' : 'Artículo publicado correctamente.');
     location.hash = '#articulos';
+  });
+}
+
+async function uploadArticleImage(file, articleId, index) {
+  if (!file || !file.type.startsWith('image/')) throw new Error('El archivo no es una imagen.');
+  const blob = await compressImageToBlob(file);
+  const safeName = file.name.replace(/[^a-z0-9._-]/gi, '-').toLowerCase();
+  const path = `${state.currentUser.id}/${articleId}/${Date.now()}-${index}-${safeName || 'imagen.jpg'}`;
+
+  const { error } = await state.supabase.storage
+    .from(ARTICLE_BUCKET)
+    .upload(path, blob, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: 'image/jpeg'
+    });
+
+  if (error) throw error;
+
+  const { data } = state.supabase.storage.from(ARTICLE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function deleteArticleImages(urls = []) {
+  const paths = urls.map(extractStoragePath).filter(Boolean);
+  if (!paths.length) return;
+  const { error } = await state.supabase.storage.from(ARTICLE_BUCKET).remove(paths);
+  if (error) console.warn('No se han podido borrar algunas imágenes antiguas:', error);
+}
+
+function extractStoragePath(publicUrl) {
+  const marker = `/storage/v1/object/public/${ARTICLE_BUCKET}/`;
+  const index = publicUrl.indexOf(marker);
+  if (index === -1) return null;
+  return decodeURIComponent(publicUrl.slice(index + marker.length));
+}
+
+function compressImageToBlob(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 1400;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const context = canvas.getContext('2d');
+        context.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(blob => {
+          if (!blob) reject(new Error('No se ha podido comprimir la imagen.'));
+          else resolve(blob);
+        }, 'image/jpeg', 0.78);
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -236,7 +363,7 @@ function editArticle(articleId) {
   const article = state.articles.find(item => item.id === articleId);
   if (!article) return;
 
-  if (sessionStorage.getItem('privateAccess') !== 'true') {
+  if (!isAuthenticated()) {
     alert('Debes acceder al área privada para editar artículos.');
     if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
     return;
@@ -261,6 +388,37 @@ function setupArticles() {
   renderArticles();
 }
 
+async function loadArticlesFromSupabase() {
+  if (!state.supabase) {
+    renderArticles();
+    return;
+  }
+
+  const { data, error } = await state.supabase
+    .from('articles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    renderArticles();
+    return;
+  }
+
+  state.articles = (data || []).map(article => ({
+    id: article.id,
+    title: article.title,
+    subtitle: article.subtitle || '',
+    body: article.body || '',
+    tags: article.tags || [],
+    images: article.image_urls || [],
+    createdAt: article.created_at,
+    updatedAt: article.updated_at
+  }));
+
+  renderArticles();
+}
+
 function renderArticles() {
   const grid = $('#articlesGrid');
   const query = $('#searchArticles')?.value?.toLowerCase() || '';
@@ -268,7 +426,7 @@ function renderArticles() {
   grid.innerHTML = '';
 
   let articles = [...state.articles].filter(article => {
-    const haystack = [article.title, article.subtitle, article.tags.join(' '), stripTags(article.body)].join(' ').toLowerCase();
+    const haystack = [article.title, article.subtitle, (article.tags || []).join(' '), stripTags(article.body || '')].join(' ').toLowerCase();
     return haystack.includes(query);
   });
 
@@ -290,7 +448,7 @@ function renderArticles() {
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', `Abrir artículo: ${article.title}`);
     card.dataset.openArticle = article.id;
-    const cover = article.images[0]
+    const cover = article.images?.[0]
       ? `<img class="article-card-cover" src="${article.images[0]}" alt="Imagen del artículo ${escapeHtml(article.title)}">`
       : `<div class="article-card-cover article-card-placeholder" aria-hidden="true">Sin imagen</div>`;
     card.innerHTML = `
@@ -305,7 +463,6 @@ function renderArticles() {
       </div>`;
     grid.appendChild(card);
   });
-
 
   $$('[data-open-article]').forEach(card => {
     card.addEventListener('click', event => {
@@ -325,9 +482,9 @@ function renderArticles() {
     editArticle(button.dataset.edit);
   }));
 
-  $$('[data-delete]').forEach(button => button.addEventListener('click', event => {
+  $$('[data-delete]').forEach(button => button.addEventListener('click', async event => {
     event.stopPropagation();
-    if (sessionStorage.getItem('privateAccess') !== 'true') {
+    if (!isAuthenticated()) {
       alert('Debes acceder al área privada para eliminar artículos.');
       if (typeof window.openPrivatePanel === 'function') window.openPrivatePanel();
       return;
@@ -335,12 +492,18 @@ function renderArticles() {
 
     if (!confirm('¿Seguro que quieres eliminar este artículo?')) return;
 
-    state.articles = state.articles.filter(article => article.id !== button.dataset.delete);
-    saveArticles();
-    renderArticles();
+    const article = state.articles.find(item => item.id === button.dataset.delete);
+    const { error } = await state.supabase.from('articles').delete().eq('id', button.dataset.delete);
+    if (error) {
+      console.error(error);
+      alert('No se ha podido eliminar el artículo.');
+      return;
+    }
+
+    if (article?.images?.length) await deleteArticleImages(article.images);
+    await loadArticlesFromSupabase();
   }));
 }
-
 
 function setupArticleModal() {
   if ($('#articleModal')) return;
@@ -432,6 +595,12 @@ async function loadKnowledgeBase() {
   } catch (error) {
     state.knowledgeBase = '';
   }
+}
+
+function resetEditor() {
+  $('#articleForm').reset();
+  $('#articleBody').innerHTML = '';
+  $('#imagePreview').innerHTML = '';
 }
 
 function answerQuestion(question) {
